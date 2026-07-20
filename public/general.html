@@ -678,6 +678,23 @@
   </div>
 </div>
 <script>
+/* Capa de guardado: localStorage (persiste por equipo) + gancho de sincronización con el servidor */
+(function(){
+  if(window.storage) return;                 // si el entorno ya lo provee, no tocar
+  window.__mrpMem = window.__mrpMem || {};
+  var mem = window.__mrpMem;
+  function lg(k){ try{ return localStorage.getItem('mrp:'+k); }catch(_){ return null; } }
+  function ls(k,v){ try{ localStorage.setItem('mrp:'+k, v); }catch(_){} }
+  try{ for(var i=0;i<localStorage.length;i++){ var kk=localStorage.key(i); if(kk&&kk.indexOf('mrp:')===0) mem[kk.slice(4)]=localStorage.getItem(kk); } }catch(_){}
+  window.storage={
+    get:function(k){ var v=(k in mem)?mem[k]:lg(k); return Promise.resolve(v==null?null:{key:String(k),value:v}); },
+    set:function(k,v){ mem[k]=v; ls(k,v); if(window.__mrpSync)window.__mrpSync(); return Promise.resolve({key:String(k),value:v}); },
+    delete:function(k){ delete mem[k]; try{localStorage.removeItem('mrp:'+k);}catch(_){}; if(window.__mrpSync)window.__mrpSync(); return Promise.resolve({key:String(k),deleted:true}); },
+    list:function(pre){ var ks=Object.keys(mem).filter(function(kn){return !pre||kn.indexOf(pre)===0;}); return Promise.resolve({keys:ks}); }
+  };
+})();
+</script>
+<script>
 (function(){
   "use strict";
   const rnd=(a,b)=>a+Math.random()*(b-a),clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),lerp=(a,b,t)=>a+(b-a)*t;
@@ -1796,6 +1813,41 @@
   async function saveRetired(){try{await window.storage.set('mrpRetired',JSON.stringify([...retiredSet]),false);}catch(_){}}
   async function loadRetired(){try{const g=await window.storage.get('mrpRetired',false);if(g&&g.value){const a=JSON.parse(g.value);if(Array.isArray(a)){retiredSet=new Set(a);if(typeof render==='function')render();}}}catch(_){}}
   loadRetired();
+  // ===== Sincronización de estado con el servidor (sala "live", el último que toca manda) =====
+  let _syncWS=null,_syncTimer=null,_applyingRemote=false;
+  async function reapplyAll(){
+    try{ await loadReliable(); }catch(_){}
+    try{ await loadRetired(); }catch(_){}
+    try{ await loadAlgo(); }catch(_){}
+    try{ await loadLayout(); }catch(_){}
+    try{ await loadPanelCfg(); }catch(_){}
+    try{ await loadDriverDB(); }catch(_){}
+    try{ recompute(); }catch(_){}
+    try{ render(); }catch(_){}
+  }
+  function syncSendNow(){ if(_applyingRemote)return; if(!(_syncWS&&_syncWS.readyState===1))return; try{ _syncWS.send(JSON.stringify({type:'state',state:window.__mrpMem||{}})); }catch(_){} }
+  window.__mrpSync=function(){ if(_applyingRemote)return; if(_syncTimer)clearTimeout(_syncTimer); _syncTimer=setTimeout(syncSendNow,450); };
+  function syncConnect(){
+    if(location.protocol==='file:')return;
+    const url=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws';
+    try{ _syncWS=new WebSocket(url); }catch(e){ return; }
+    _syncWS.onopen=()=>{ try{ _syncWS.send(JSON.stringify({type:'join',id:'live'})); }catch(_){} };
+    _syncWS.onmessage=async(ev)=>{ let m; try{ m=JSON.parse(ev.data); }catch(_){ return; }
+      if(m.type==='state'){
+        if(m.state && typeof m.state==='object' && Object.keys(m.state).length){
+          _applyingRemote=true;
+          try{
+            window.__mrpMem=Object.assign({},m.state);
+            try{ Object.keys(m.state).forEach(k=>{ try{ localStorage.setItem('mrp:'+k,m.state[k]); }catch(_){} }); }catch(_){}
+            await reapplyAll();
+          } finally { _applyingRemote=false; }
+        } else { syncSendNow(); }   // sala vacía: subo mi estado para inicializarla
+      }
+    };
+    _syncWS.onclose=()=>{ _syncWS=null; setTimeout(syncConnect,2500); };
+    _syncWS.onerror=()=>{};
+  }
+  if(location.protocol!=='file:') setTimeout(syncConnect,900);
   async function saveLayout(){try{await window.storage.set(LAYK,JSON.stringify({order:colOrder,hidden:[...hiddenCols],boxW,boxH}),false);}catch(_){}}
   async function loadLayout(){try{const g=await window.storage.get(LAYK,false);if(g&&g.value){const o=JSON.parse(g.value);if(o&&Array.isArray(o.order)){
     const known=Object.keys(COLS);let ord=[...new Set(o.order.filter(id=>known.includes(id)))];
