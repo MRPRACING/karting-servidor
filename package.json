@@ -1,0 +1,15 @@
+{
+  "name": "gestor-karting-servidor",
+  "version": "1.0.0",
+  "description": "Servidor de la suite de estrategia de karting de resistencia (hub + gestor de boxes + gestor general, con sincronizacion en tiempo real)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.21.1"
+  }
+}

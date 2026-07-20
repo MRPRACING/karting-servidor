@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Editor de Circuito — MRP</title>
+<style>
+  :root{ --bg:#0e1116; --bar:#161b22; --pan:#1c232d; --line:#2b333e; --tx:#e6edf3; --mut:#8b949e;
+         --track:#ffd400; --pit:#f97316; --in:#22c55e; --out:#3b82f6; --meta:#ffffff; --sector:#c084fc; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  #app{display:flex;flex-direction:column;height:100%}
+  #bar{background:var(--bar);border-bottom:1px solid var(--line);padding:6px;display:flex;
+    flex-wrap:wrap;gap:6px;align-items:center}
+  #bar .grp{display:flex;gap:4px;align-items:center;padding:3px 6px;background:var(--pan);
+    border:1px solid var(--line);border-radius:8px}
+  button{font:inherit;color:var(--tx);background:var(--pan);border:1px solid var(--line);
+    border-radius:7px;padding:7px 10px;cursor:pointer;font-size:13px;line-height:1}
+  button:active{transform:translateY(1px)}
+  button.tool.on{outline:2px solid #58a6ff;background:#243247}
+  button.on-track.on{border-color:var(--track)} button.on-pit.on{border-color:var(--pit)}
+  button.on-in.on{border-color:var(--in)} button.on-out.on{border-color:var(--out)}
+  button.on-meta.on{border-color:#fff} button.on-sector.on{border-color:var(--sector)}
+  button.danger{border-color:#5a2020;background:#2a1414;color:#ff9b9b}
+  input[type=text]{font:inherit;background:#0b0f14;color:var(--tx);border:1px solid var(--line);
+    border-radius:7px;padding:7px 9px;font-size:13px;width:150px}
+  .lbl{font-size:11px;color:var(--mut);margin-right:2px}
+  #stage{flex:1;position:relative;overflow:hidden;background:
+    repeating-conic-gradient(#0b0f14 0 25%,#12171e 0 50%) 0 0/26px 26px}
+  svg{width:100%;height:100%;display:block;touch-action:none}
+  #drop{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    text-align:center;color:var(--mut);font-size:15px;padding:24px;pointer-events:none}
+  #status{background:var(--bar);border-top:1px solid var(--line);padding:6px 10px;font-size:12px;
+    color:var(--mut);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  #status b{color:var(--tx);font-weight:600}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle}
+  .h{cursor:pointer}
+  input[type=file]{display:none}
+  #help{color:var(--mut);font-size:12px}
+  @media(max-width:640px){ input[type=text]{width:110px} button{padding:8px 9px} }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="bar">
+    <div class="grp">
+      <button id="btnHome">← Menú</button>
+    </div>
+    <div class="grp">
+      <span class="lbl">Nombre</span>
+      <input id="name" type="text" placeholder="Circuito…">
+    </div>
+    <div class="grp">
+      <button id="btnPhoto">📷 Foto</button>
+      <button id="btnLoad">📂 Abrir</button>
+      <button id="btnSave">💾 Guardar</button>
+      <button id="btnCopy">📋 Copiar</button>
+      <button id="btnServer">☁ Servidor</button>
+    </div>
+    <div class="grp">
+      <span class="lbl">Dibujar</span>
+      <button class="tool on-track" data-m="track">Trazado</button>
+      <button class="tool on-meta" data-m="finish">Meta</button>
+      <button class="tool on-in" data-m="pitin">Pit-in</button>
+      <button class="tool on-out" data-m="pitout">Pit-out</button>
+      <button class="tool on-pit" data-m="pitlane">Carril</button>
+      <button class="tool on-sector" data-m="sector">Sectores</button>
+      <button class="tool" data-m="photo" id="btnAdjust">🖼 Ajustar foto</button>
+    </div>
+    <div class="grp">
+      <button class="tool" data-m="edit">✋ Mover</button>
+      <button class="tool" data-m="del">🗑 Borrar</button>
+      <button class="tool on" data-m="pan">🔍 Vista</button>
+    </div>
+    <div class="grp">
+      <button id="btnClose">Cerrar trazado</button>
+      <button id="btnRevTrack" title="Invertir el orden de los puntos del trazado (sentido de vuelta)">⇄ Sentido trazado</button>
+      <button id="btnRevPit" title="Invertir el orden del carril de boxes">⇄ Sentido carril</button>
+      <button id="btnUndo">↶ Deshacer</button>
+      <button id="btnClear" class="danger">Limpiar</button>
+    </div>
+  </div>
+
+  <div id="stage">
+    <svg id="svg" preserveAspectRatio="xMidYMid meet"></svg>
+    <div id="drop">Toca <b>📷 Foto</b> para cargar el plano del circuito<br>(en iPad puedes elegir de Fotos o Archivos)</div>
+  </div>
+
+  <div id="status">
+    <span id="help">Modo: <b id="stMode">Vista</b></span>
+    <span><span class="sw" style="background:var(--track)"></span>Trazado <b id="cT">0</b></span>
+    <span><span class="sw" style="background:var(--meta)"></span>Meta <b id="cM">0</b>/2</span>
+    <span><span class="sw" style="background:var(--in)"></span>Pit-in <b id="cI">no</b></span>
+    <span><span class="sw" style="background:var(--out)"></span>Pit-out <b id="cO">no</b></span>
+    <span><span class="sw" style="background:var(--pit)"></span>Carril <b id="cP">0</b></span>
+    <span><span class="sw" style="background:var(--sector)"></span>Sectores <b id="cS">0</b>/2</span>
+  </div>
+</div>
+
+<input id="filePhoto" type="file" accept="image/*">
+<input id="fileLoad" type="file" accept=".json,application/json">
+
+<script>
+const SVGNS='http://www.w3.org/2000/svg';
+const $=id=>document.getElementById(id);
+const svg=$('svg');
+const clone=o=>JSON.parse(JSON.stringify(o));
+
+const CW=1600, CH=1000;   // LIENZO fijo: todos los circuitos se dibujan aquí -> mismo tamaño/proporción
+function blank(){
+  return { name:'', img:null, imgW:0, imgH:0, imgX:0, imgY:0, imgScale:1,
+    track:{pts:[],closed:false}, finish:[], pitin:null, pitout:null, pitlane:{pts:[]}, sectors:[] };
+}
+let G=blank();
+let mode='pan';
+let view={x:0,y:0,w:CW,h:CH};
+let undoStack=[];
+
+// --- pointer state
+const pointers=new Map();
+let dragging=null, downPos=null, panStart=null, panScale={a:1,d:1}, moved=false, adding=false, pinchPrev=null, photoDrag=null;
+
+const drawModes=['track','finish','pitin','pitout','pitlane','sector'];
+const isDraw=m=>drawModes.indexOf(m)>=0;
+
+function el(tag,a){const e=document.createElementNS(SVGNS,tag);for(const k in a)e.setAttribute(k,a[k]);return e;}
+
+function toUser(cx,cy){
+  const m=svg.getScreenCTM(); if(!m) return {x:0,y:0};
+  const p=new DOMPoint(cx,cy).matrixTransform(m.inverse());
+  return {x:p.x,y:p.y};
+}
+function applyView(){ svg.setAttribute('viewBox', view.x+' '+view.y+' '+view.w+' '+view.h); }
+
+function pushUndo(){ undoStack.push(clone(G)); if(undoStack.length>60) undoStack.shift(); }
+
+// --- rendering
+function addHandles(g,name,pts,r,color){
+  pts.forEach((p,i)=>{
+    g.appendChild(el('circle',{cx:p[0],cy:p[1],r:r,fill:color,'fill-opacity':0.85,
+      stroke:'#0b0f14','stroke-width':r*0.28,class:'h','data-el':name,'data-i':i}));
+  });
+}
+function addMarker(g,pt,color,label,r){
+  if(!pt) return;
+  g.appendChild(el('circle',{cx:pt[0],cy:pt[1],r:r*1.15,fill:color,'fill-opacity':0.9,
+    stroke:'#0b0f14','stroke-width':r*0.3}));
+  const t=el('text',{x:pt[0],y:pt[1]-r*1.9,fill:color,'font-size':r*2.2,'font-weight':'700',
+    'text-anchor':'middle','paint-order':'stroke','stroke':'#0b0f14','stroke-width':r*0.4});
+  t.textContent=label; g.appendChild(t);
+}
+function addArrows(g,pts,closed,color,r){
+  const n=pts.length; if(n<2) return;
+  const last=closed?n:n-1;
+  const step=Math.max(1,Math.floor(last/12));   // como mucho ~12 flechas para no saturar
+  for(let i=0;i<last;i+=step){
+    const a=pts[i], b=pts[(i+1)%n];
+    const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2;
+    const ang=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI;
+    const s=r*1.15;
+    g.appendChild(el('polygon',{points:`${s} 0 ${-s*0.65} ${-s*0.7} ${-s*0.65} ${s*0.7}`,
+      fill:color,stroke:'#0b0f14','stroke-width':r*0.16,
+      transform:`translate(${mx},${my}) rotate(${ang})`}));
+  }
+}
+function render(){
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  if(G.img){
+    const iw=G.imgW*G.imgScale, ih=G.imgH*G.imgScale;
+    const im=el('image',{x:G.imgX,y:G.imgY,width:iw,height:ih,preserveAspectRatio:'none'});
+    im.setAttribute('href',G.img); im.setAttributeNS('http://www.w3.org/1999/xlink','href',G.img);
+    svg.appendChild(im);
+  }
+  // borde del LIENZO fijo (zona de dibujo)
+  svg.appendChild(el('rect',{x:0,y:0,width:CW,height:CH,fill:'none',stroke:'#3a4a5e','stroke-width':Math.max(view.w*0.003,0.4),'stroke-dasharray':(view.w*0.012)+' '+(view.w*0.008)}));
+  const sw=Math.max(view.w*0.0038,0.4);
+  const r=Math.max(view.w*0.012,0.8);
+  // pit lane
+  const pl=G.pitlane.pts;
+  if(pl.length>1){
+    svg.appendChild(el('path',{d:'M'+pl.map(p=>p[0]+' '+p[1]).join(' L '),fill:'none',
+      stroke:'var(--pit)','stroke-width':sw,'stroke-dasharray':(sw*2.2)+' '+(sw*1.8),
+      'stroke-linecap':'round','stroke-linejoin':'round'}));
+    addArrows(svg,pl,false,'var(--pit)',r);
+  }
+  // track
+  const t=G.track.pts;
+  if(t.length>1){
+    let d='M'+t.map(p=>p[0]+' '+p[1]).join(' L '); if(G.track.closed) d+=' Z';
+    svg.appendChild(el('path',{d,fill:'none',stroke:'var(--track)','stroke-width':sw,
+      'stroke-linecap':'round','stroke-linejoin':'round'}));
+    addArrows(svg,t,G.track.closed,'var(--track)',r);
+  }
+  // finish line (checker look = white + black dashes)
+  if(G.finish.length===2){
+    const a=G.finish[0],b=G.finish[1];
+    svg.appendChild(el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#fff','stroke-width':sw*1.8,'stroke-linecap':'butt'}));
+    svg.appendChild(el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#000','stroke-width':sw*1.8,
+      'stroke-dasharray':(sw*1.6)+' '+(sw*1.6),'stroke-linecap':'butt'}));
+  }
+  // markers
+  addMarker(svg,G.pitin,'var(--in)','IN',r);
+  addMarker(svg,G.pitout,'var(--out)','OUT',r);
+  G.sectors.forEach((p,i)=>addMarker(svg,p,'var(--sector)','S'+(i+1),r));
+  // handles (on top)
+  const h=el('g',{});
+  addHandles(h,'track',t,r,'var(--track)');
+  addHandles(h,'pitlane',pl,r,'var(--pit)');
+  addHandles(h,'finish',G.finish,r,'#fff');
+  addHandles(h,'sector',G.sectors,r,'var(--sector)');
+  if(G.pitin) addHandles(h,'pitin',[G.pitin],r,'var(--in)');
+  if(G.pitout) addHandles(h,'pitout',[G.pitout],r,'var(--out)');
+  svg.appendChild(h);
+  updateStatus();
+}
+function updateStatus(){
+  $('stMode').textContent=({track:'Trazado',finish:'Meta',pitin:'Pit-in',pitout:'Pit-out',
+    pitlane:'Carril',sector:'Sectores',photo:'Ajustar foto',edit:'Mover',del:'Borrar',pan:'Vista'})[mode];
+  $('cT').textContent=G.track.pts.length+(G.track.closed?' ⭕':'');
+  $('cM').textContent=G.finish.length;
+  $('cI').textContent=G.pitin?'sí':'no';
+  $('cO').textContent=G.pitout?'sí':'no';
+  $('cP').textContent=G.pitlane.pts.length;
+  { const cs=$('cS'); if(cs) cs.textContent=G.sectors.length; }
+  $('drop').style.display=G.img?'none':'flex';
+}
+
+// --- geometry ops
+function addPoint(m,u){
+  const p=[u.x,u.y];
+  if(m==='track') G.track.pts.push(p);
+  else if(m==='pitlane') G.pitlane.pts.push(p);
+  else if(m==='finish'){ if(G.finish.length>=2) G.finish=[]; G.finish.push(p); }
+  else if(m==='pitin') G.pitin=p;
+  else if(m==='pitout') G.pitout=p;
+  else if(m==='sector'){ if(G.sectors.length>=2) G.sectors=[]; G.sectors.push(p); }
+}
+function setPoint(name,i,u){
+  const p=[u.x,u.y];
+  if(name==='track') G.track.pts[i]=p;
+  else if(name==='pitlane') G.pitlane.pts[i]=p;
+  else if(name==='finish') G.finish[i]=p;
+  else if(name==='sector') G.sectors[i]=p;
+  else if(name==='pitin') G.pitin=p;
+  else if(name==='pitout') G.pitout=p;
+}
+function deletePoint(name,i){
+  pushUndo();
+  if(name==='track') G.track.pts.splice(i,1);
+  else if(name==='pitlane') G.pitlane.pts.splice(i,1);
+  else if(name==='finish') G.finish.splice(i,1);
+  else if(name==='sector') G.sectors.splice(i,1);
+  else if(name==='pitin') G.pitin=null;
+  else if(name==='pitout') G.pitout=null;
+  render();
+}
+
+// --- pointer handlers
+function pinchData(){
+  const a=[...pointers.values()];
+  return { mid:{x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2},
+           dist:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y) };
+}
+function doPinch(){
+  const cur=pinchData();
+  if(!pinchPrev){ pinchPrev=cur; return; }
+  if(mode==='photo' && G.img){
+    // escalar la FOTO alrededor del punto medio (no la vista)
+    const factor=cur.dist/pinchPrev.dist;
+    const uMid=toUser(cur.mid.x,cur.mid.y);
+    G.imgX=uMid.x-(uMid.x-G.imgX)*factor;
+    G.imgY=uMid.y-(uMid.y-G.imgY)*factor;
+    G.imgScale*=factor;
+    pinchPrev=cur; render(); return;
+  }
+  const factor=pinchPrev.dist/cur.dist;
+  const uPrev=toUser(pinchPrev.mid.x,pinchPrev.mid.y);
+  view.x=uPrev.x-(uPrev.x-view.x)*factor;
+  view.y=uPrev.y-(uPrev.y-view.y)*factor;
+  view.w*=factor; view.h*=factor; clampView(); applyView();
+  const uNow=toUser(cur.mid.x,cur.mid.y);
+  const uP2=toUser(pinchPrev.mid.x,pinchPrev.mid.y);
+  view.x-=(uNow.x-uP2.x); view.y-=(uNow.y-uP2.y); applyView();
+  pinchPrev=cur; render();
+}
+function clampView(){
+  const min=CW*0.05, max=CW*8;
+  if(view.w<min){ view.h*=min/view.w; view.w=min; }
+  if(view.w>max){ view.h*=max/view.w; view.w=max; }
+}
+svg.addEventListener('pointerdown',e=>{
+  if(!G.img) return;
+  svg.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===2){ dragging=null; adding=false; photoDrag=null; pinchPrev=pinchData(); return; }
+  if(mode==='photo'){
+    dragging=null; photoDrag={imgX:G.imgX,imgY:G.imgY};
+    downPos={x:e.clientX,y:e.clientY};
+    const m=svg.getScreenCTM(); panScale={a:m?m.a:1,d:m?m.d:1};
+    adding=false; moved=false; return;
+  }
+  const tgt=e.target;
+  if(tgt && tgt.dataset && tgt.dataset.el){
+    if(mode==='del'){ deletePoint(tgt.dataset.el,+tgt.dataset.i); adding=false; return; }
+    pushUndo(); dragging={el:tgt.dataset.el,i:+tgt.dataset.i}; adding=false; return;
+  }
+  dragging=null; downPos={x:e.clientX,y:e.clientY}; panStart={x:view.x,y:view.y};
+  const m=svg.getScreenCTM(); panScale={a:m?m.a:1,d:m?m.d:1};
+  adding=isDraw(mode); moved=false;
+});
+svg.addEventListener('pointermove',e=>{
+  if(!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size>=2){ doPinch(); return; }
+  if(downPos){
+    if(Math.abs(e.clientX-downPos.x)>3||Math.abs(e.clientY-downPos.y)>3) moved=true;
+  }
+  if(dragging){ setPoint(dragging.el,dragging.i,toUser(e.clientX,e.clientY)); render(); return; }
+  if(photoDrag && downPos){
+    G.imgX=photoDrag.imgX+(e.clientX-downPos.x)/panScale.a;
+    G.imgY=photoDrag.imgY+(e.clientY-downPos.y)/panScale.d;
+    render(); return;
+  }
+  if(mode==='pan' && downPos){
+    view.x=panStart.x-(e.clientX-downPos.x)/panScale.a;
+    view.y=panStart.y-(e.clientY-downPos.y)/panScale.d;
+    applyView();
+  }
+});
+function up(e){
+  const wasAdding=adding, m=moved, sz=pointers.size;
+  pointers.delete(e.pointerId);
+  if(pointers.size<2) pinchPrev=null;
+  if(dragging){ dragging=null; downPos=null; return; }
+  if(photoDrag){ photoDrag=null; downPos=null; return; }
+  if(wasAdding && !m && sz===1){
+    pushUndo(); addPoint(mode,toUser(e.clientX,e.clientY)); render();
+  }
+  downPos=null; adding=false; moved=false;
+}
+svg.addEventListener('pointerup',up);
+svg.addEventListener('pointercancel',up);
+svg.addEventListener('wheel',e=>{
+  if(!G.img) return; e.preventDefault();
+  const u=toUser(e.clientX,e.clientY);
+  if(mode==='photo'){
+    const f=e.deltaY>0?0.92:1.08;
+    G.imgX=u.x-(u.x-G.imgX)*f; G.imgY=u.y-(u.y-G.imgY)*f; G.imgScale*=f; render(); return;
+  }
+  const factor=e.deltaY>0?1.1:0.9;
+  view.x=u.x-(u.x-view.x)*factor; view.y=u.y-(u.y-view.y)*factor;
+  view.w*=factor; view.h*=factor; clampView(); applyView(); render();
+},{passive:false});
+
+// --- tools
+document.querySelectorAll('button.tool').forEach(b=>{
+  b.addEventListener('click',()=>{
+    mode=b.dataset.m;
+    document.querySelectorAll('button.tool').forEach(x=>x.classList.toggle('on',x===b));
+    updateStatus();
+  });
+});
+$('btnClose').addEventListener('click',()=>{ pushUndo(); G.track.closed=!G.track.closed; render(); });
+$('btnRevTrack').addEventListener('click',()=>{ if(G.track.pts.length<2) return; pushUndo(); G.track.pts.reverse(); render(); });
+$('btnRevPit').addEventListener('click',()=>{ if(G.pitlane.pts.length<2) return; pushUndo(); G.pitlane.pts.reverse(); render(); });
+$('btnUndo').addEventListener('click',()=>{ if(undoStack.length){ G=undoStack.pop(); render(); } });
+$('btnClear').addEventListener('click',()=>{
+  if(!confirm('¿Borrar todo el trazado (se mantiene la foto)?')) return;
+  pushUndo();
+  G.track={pts:[],closed:false}; G.finish=[]; G.pitin=null; G.pitout=null; G.pitlane={pts:[]}; G.sectors=[];
+  render();
+});
+$('name').addEventListener('input',e=>{ G.name=e.target.value; });
+
+// --- photo load
+function loadImageDataURL(dataURL){
+  const img=new Image();
+  img.onload=()=>{
+    G.img=dataURL; G.imgW=img.naturalWidth; G.imgH=img.naturalHeight;
+    // encajar la foto dentro del lienzo (contain) y centrarla; luego se ajusta con "🖼 Ajustar foto"
+    const sc=Math.min(CW/G.imgW, CH/G.imgH);
+    G.imgScale=sc; G.imgX=(CW-G.imgW*sc)/2; G.imgY=(CH-G.imgH*sc)/2;
+    view={x:0,y:0,w:CW,h:CH}; applyView(); render();
+  };
+  img.src=dataURL;
+}
+function fileToDataURL(file){
+  const r=new FileReader();
+  r.onload=()=>loadImageDataURL(r.result);
+  r.readAsDataURL(file);
+}
+$('btnPhoto').addEventListener('click',()=>$('filePhoto').click());
+$('filePhoto').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) fileToDataURL(f); e.target.value=''; });
+window.addEventListener('paste',e=>{
+  const items=(e.clipboardData||{}).items||[];
+  for(const it of items){ if(it.type&&it.type.indexOf('image')===0){ const f=it.getAsFile(); if(f){ fileToDataURL(f); e.preventDefault(); return; } } }
+});
+$('stage').addEventListener('dragover',e=>e.preventDefault());
+$('stage').addEventListener('drop',e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f&&f.type.indexOf('image')===0) fileToDataURL(f); });
+
+// --- save / load  (puntos normalizados 0-1 respecto al LIENZO fijo CW x CH)
+function nrm(pts){ return pts.map(p=>[+(p[0]/CW).toFixed(5),+(p[1]/CH).toFixed(5)]); }
+function dnrm(pts){ return (pts||[]).map(p=>[p[0]*CW,p[1]*CH]); }
+function buildData(withImg){
+  return { tipo:'circuito-mrp', version:2, nombre:(G.name||'circuito'),
+    imgW:CW, imgH:CH,                                  // proporción del lienzo (para el gestor)
+    trazado:{ puntos:nrm(G.track.pts), cerrado:G.track.closed },
+    meta:nrm(G.finish),
+    pitIn: G.pitin?nrm([G.pitin])[0]:null,
+    pitOut: G.pitout?nrm([G.pitout])[0]:null,
+    carrilBoxes:{ puntos:nrm(G.pitlane.pts) },
+    sectores:nrm(G.sectors), tieneSectores:(G.sectors.length===2),
+    // bloque solo del editor (para poder re-editar); el gestor lo ignora
+    editor: withImg?{ img:G.img, imgW:G.imgW, imgH:G.imgH, imgX:G.imgX, imgY:G.imgY, imgScale:G.imgScale }:null };
+}
+function sanitize(s){ return (s||'circuito').trim().replace(/[^\w\-]+/g,'_').replace(/^_+|_+$/g,'')||'circuito'; }
+$('btnSave').addEventListener('click',()=>{
+  if(!G.img){ alert('Carga una foto primero.'); return; }
+  const blob=new Blob([JSON.stringify(buildData(true))],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=sanitize(G.name)+'.json'; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500);
+});
+$('btnCopy').addEventListener('click',async()=>{
+  if(!G.img){ alert('Carga una foto primero.'); return; }
+  const txt=JSON.stringify(buildData(true));
+  try{ await navigator.clipboard.writeText(txt); alert('Copiado. Pégalo en el chat.'); }
+  catch(_){ alert('No se pudo copiar automáticamente. Usa 💾 Guardar y adjunta el archivo.'); }
+});
+$('btnLoad').addEventListener('click',()=>$('fileLoad').click());
+$('fileLoad').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ loadCircuit(JSON.parse(r.result)); }catch(err){ alert('Archivo no válido.'); } };
+  r.readAsText(f); e.target.value='';
+});
+function loadCircuit(o){
+  G=blank();
+  G.name=o.nombre||'';
+  G.track={ pts:dnrm(o.trazado&&o.trazado.puntos), closed:!!(o.trazado&&o.trazado.cerrado) };
+  G.finish=dnrm(o.meta);
+  G.pitin=o.pitIn?dnrm([o.pitIn])[0]:null;
+  G.pitout=o.pitOut?dnrm([o.pitOut])[0]:null;
+  G.pitlane={ pts:dnrm(o.carrilBoxes&&o.carrilBoxes.puntos) };
+  G.sectors=dnrm(o.sectores);
+  // foto: bloque editor (v2) o campo imagen suelto (v1)
+  const ed=o.editor;
+  if(ed && ed.img){
+    G.img=ed.img; G.imgW=ed.imgW||0; G.imgH=ed.imgH||0;
+    G.imgX=(ed.imgX!=null?ed.imgX:0); G.imgY=(ed.imgY!=null?ed.imgY:0); G.imgScale=(ed.imgScale||1);
+  } else if(o.imagen){
+    G.img=o.imagen; G.imgW=o.imgW||CW; G.imgH=o.imgH||CH;
+    const sc=Math.min(CW/G.imgW, CH/G.imgH); G.imgScale=sc; G.imgX=(CW-G.imgW*sc)/2; G.imgY=(CH-G.imgH*sc)/2;
+  }
+  $('name').value=G.name;
+  view={x:0,y:0,w:CW,h:CH}; applyView(); render();
+  if(!G.img) alert('El trazado no traía foto (se ve solo el dibujo). Puedes cargar una con 📷 Foto.');
+}
+
+$('btnHome').addEventListener('click',()=>{
+  const hayDibujo = (G.track.pts.length||G.finish.length||G.sectors.length||G.pitlane.pts.length||G.pitin||G.pitout);
+  if(hayDibujo && !confirm('¿Volver al menú? Si no has guardado el trazado (💾 o ☁ Servidor), se perderá lo dibujado.')) return;
+  if(location.protocol==='http:'||location.protocol==='https:') location.href='/';
+  else history.back();
+});
+
+applyView(); render();
+
+// --- servidor: guardar / abrir / borrar trazados
+(function(){
+  const onServer = (location.protocol==='http:'||location.protocol==='https:');
+  const ov=document.createElement('div');
+  ov.id='srvOverlay';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:500';
+  ov.innerHTML='<div style="background:#111823;border:1px solid #26313f;border-radius:14px;max-width:520px;width:92%;max-height:80%;overflow:auto;padding:16px;color:#e7edf5;font-family:system-ui,sans-serif">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:16px">Trazados en el servidor</b><button id="srvClose" style="background:#1a2430;border:1px solid #2a3a4d;color:#e7edf5;border-radius:8px;padding:6px 10px;cursor:pointer">Cerrar</button></div>'
+    +'<button id="srvSave" style="width:100%;background:#37d67a;border:none;color:#052a13;font-weight:700;border-radius:9px;padding:11px;font-size:14px;cursor:pointer;margin-bottom:12px">☁ Guardar el trazado actual en el servidor</button>'
+    +'<div id="srvList" style="display:flex;flex-direction:column;gap:8px"></div>'
+    +'<div id="srvHint" style="color:#8ea1ba;font-size:12px;margin-top:12px"></div></div>';
+  document.body.appendChild(ov);
+  const $$=id=>document.getElementById(id);
+  function close(){ ov.style.display='none'; }
+  ov.addEventListener('click',e=>{ if(e.target===ov) close(); });
+  async function refresh(){
+    const list=$$('srvList'); const hint=$$('srvHint'); list.innerHTML=''; hint.textContent='';
+    if(!onServer){ hint.textContent='Abre el editor desde el servidor (http://localhost:8090/editor.html) para guardar/abrir trazados. Aquí, en local, usa 💾 Guardar / 📂 Abrir con archivos.'; return; }
+    try{
+      const r=await fetch('/api/tracks'); const {tracks}=await r.json();
+      if(!tracks||!tracks.length){ hint.textContent='Aún no hay trazados guardados. Dibuja uno y pulsa "Guardar el trazado actual".'; return; }
+      tracks.forEach(t=>{
+        const row=document.createElement('div');
+        row.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:8px;background:#0f1520;border:1px solid #26313f;border-radius:10px;padding:10px 12px';
+        const d=new Date(t.created);
+        row.innerHTML='<div><div style="font-weight:600"></div><div style="color:#8ea1ba;font-size:12px">'+d.toLocaleDateString('es-ES')+' '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})+(t.hasImg?'':' · sin foto')+'</div></div>'
+          +'<div style="display:flex;gap:6px"><button class="op" style="background:#4aa8ff;border:none;color:#04203f;font-weight:700;border-radius:8px;padding:8px 12px;cursor:pointer">Abrir</button><button class="dl" style="background:#2a1620;border:1px solid #5c2436;color:#f0a7bc;border-radius:8px;padding:8px 10px;cursor:pointer">🗑</button></div>';
+        row.querySelector('div>div').textContent=t.name;
+        row.querySelector('.op').onclick=async()=>{ try{ const rr=await fetch('/api/tracks?id='+encodeURIComponent(t.id)); const j=await rr.json(); if(j&&j.data){ loadCircuit(j.data); close(); } else alert('No se pudo cargar.'); }catch(e){ alert('Error al abrir.'); } };
+        row.querySelector('.dl').onclick=async()=>{ if(!row.dataset.armed){ row.dataset.armed='1'; row.querySelector('.dl').textContent='¿Seguro?'; setTimeout(()=>{ if(row.dataset.armed){ row.dataset.armed=''; const b=row.querySelector('.dl'); if(b)b.textContent='🗑'; } },2500); return; } await fetch('/api/tracks?id='+encodeURIComponent(t.id),{method:'DELETE'}); refresh(); };
+        list.appendChild(row);
+      });
+    }catch(e){ hint.textContent='No se pudo conectar con el servidor.'; }
+  }
+  $('btnServer').addEventListener('click',()=>{ ov.style.display='flex'; refresh(); });
+  $$('srvClose').addEventListener('click',close);
+  $$('srvSave').addEventListener('click',async()=>{
+    if(!onServer){ alert('Abre el editor desde el servidor para guardar ahí.'); return; }
+    if(!G.img){ alert('Carga una foto y dibuja el trazado primero.'); return; }
+    try{
+      const r=await fetch('/api/tracks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:G.name||'Circuito',data:buildData(true)})});
+      if(r.ok){ alert('Guardado en el servidor.'); refresh(); } else alert('No se pudo guardar (¿foto muy grande?).');
+    }catch(e){ alert('Error al guardar.'); }
+  });
+})();
+</script>
+</body>
+</html>

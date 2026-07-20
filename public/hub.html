@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes">
+<title>Estrategia Karting · Inicio</title>
+<style>
+  :root{ --bg:#0b0f16; --panel:#131a26; --panel2:#0f1520; --txt:#e7edf5; --mut:#8ea1ba; --line:#233047; --accent:#37d67a; --accent2:#4aa8ff; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 16px 60px}
+  h1{font-size:22px;margin:8px 0 2px} .sub{color:var(--mut);font-size:13px;margin-bottom:20px}
+  .pick{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .pick button{flex:1 1 220px;min-height:96px;border:1.5px solid var(--line);background:var(--panel);color:var(--txt);border-radius:16px;font-size:17px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;transition:.12s}
+  .pick button .d{font-size:12px;font-weight:400;color:var(--mut)}
+  .pick button.sel{border-color:var(--accent);background:#12241b;color:#a7f0c4}
+  .pick button.sel.gen{border-color:var(--accent2);background:#12203a;color:#bfe0ff}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:18px}
+  .row{display:flex;gap:10px;align-items:center}
+  input[type=text]{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:11px 12px;font-size:15px}
+  .btn{border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:10px;padding:11px 14px;font-size:14px;cursor:pointer;white-space:nowrap}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#052a13;font-weight:600}
+  .btn.primary.gen{background:var(--accent2);border-color:var(--accent2);color:#04203f}
+  .list{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+  .card{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .card .nm{font-weight:600} .card .mt{color:var(--mut);font-size:12px;margin-top:2px}
+  .card .acts{display:flex;gap:8px}
+  .card .open{background:var(--accent);border-color:var(--accent);color:#052a13;font-weight:600}
+  .card .open.gen{background:var(--accent2);border-color:var(--accent2);color:#04203f}
+  .card .del{background:#2a1620;border-color:#5c2436;color:#f0a7bc}
+  .empty{color:var(--mut);font-size:14px;text-align:center;padding:18px 0}
+  .hid{display:none}
+  .hint{color:var(--mut);font-size:12px;margin-top:14px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Estrategia Karting de Resistencia</h1>
+  <div class="sub">Elige una herramienta y una carrera. Lo que se mueva se ve en vivo en todos los dispositivos conectados a la misma carrera.</div>
+
+  <div class="pick">
+    <button id="pickBoxes"><span>🅱️ Gestor de boxes</span><span class="d">Sorteo y control de karts en el box</span></button>
+    <button id="pickGeneral" class="gen"><span>📊 Gestor general</span><span class="d">Carrera completa (con Apex Timing)</span></button>
+  </div>
+
+  <div style="margin:2px 0 0"><a href="editor.html" class="btn" style="display:inline-block;text-decoration:none">🗺️ Editor de circuitos</a> <span class="sub" style="margin:0">— crea y guarda trazados para elegirlos en la carrera</span></div>
+
+  <div id="sessPanel" class="panel hid">
+    <div class="row">
+      <input id="raceName" type="text" placeholder="Nombre de la nueva carrera (p. ej. 4H Viana)" maxlength="60">
+      <button id="raceCreate" class="btn primary">+ Crear</button>
+    </div>
+    <div id="raceList" class="list"></div>
+    <div class="hint" id="hint"></div>
+  </div>
+</div>
+
+<script>
+let gestor=null;   // 'boxes' | 'general'
+const $=id=>document.getElementById(id);
+
+function selPick(g){
+  gestor=g;
+  $('pickBoxes').classList.toggle('sel', g==='boxes');
+  $('pickGeneral').classList.toggle('sel', g==='general');
+  $('sessPanel').classList.remove('hid');
+  $('raceCreate').classList.toggle('gen', g==='general');
+  $('hint').textContent = g==='boxes'
+    ? 'El gestor de boxes también puede usarse sin servidor (offline) abriendo su archivo directamente. Aquí, en el servidor, se sincroniza entre dispositivos.'
+    : 'El gestor general está pensado para usarse con Apex Timing. Aquí se sincroniza entre dispositivos.';
+  loadList();
+}
+$('pickBoxes').onclick=()=>selPick('boxes');
+$('pickGeneral').onclick=()=>selPick('general');
+
+function fmtDate(ts){ const d=new Date(ts); return d.toLocaleDateString('es-ES')+' '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}); }
+
+async function loadList(){
+  const box=$('raceList'); box.innerHTML='<div class="empty">Cargando…</div>';
+  try{
+    const r=await fetch('/api/sessions?gestor='+gestor); const {sessions}=await r.json();
+    if(!sessions.length){ box.innerHTML='<div class="empty">Aún no hay carreras. Crea una arriba.</div>'; return; }
+    box.innerHTML='';
+    for(const s of sessions){
+      const c=document.createElement('div'); c.className='card';
+      c.innerHTML='<div><div class="nm"></div><div class="mt">'+fmtDate(s.created)+'</div></div>'+
+        '<div class="acts"><button class="btn open'+(gestor==='general'?' gen':'')+'">Entrar</button><button class="btn del">🗑</button></div>';
+      c.querySelector('.nm').textContent=s.name;
+      c.querySelector('.open').onclick=()=>{ location.href=(gestor==='boxes'?'boxes.html':'general.html')+'?session='+encodeURIComponent(s.id); };
+      c.querySelector('.del').onclick=async()=>{ if(!c.dataset.armed){ c.dataset.armed='1'; c.querySelector('.del').textContent='¿Seguro?'; setTimeout(()=>{ if(c.dataset.armed){ c.dataset.armed=''; const d=c.querySelector('.del'); if(d)d.textContent='🗑'; } },2500); return; } await fetch('/api/sessions?id='+encodeURIComponent(s.id),{method:'DELETE'}); loadList(); };
+      box.appendChild(c);
+    }
+  }catch(e){ box.innerHTML='<div class="empty">No se pudo conectar con el servidor.</div>'; }
+}
+
+async function createRace(){
+  const name=$('raceName').value.trim(); if(!name){ $('raceName').focus(); return; }
+  const r=await fetch('/api/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gestor,name})});
+  const {session}=await r.json(); $('raceName').value='';
+  if(session) location.href=(gestor==='boxes'?'boxes.html':'general.html')+'?session='+encodeURIComponent(session.id);
+}
+$('raceCreate').onclick=createRace;
+$('raceName').addEventListener('keydown',e=>{ if(e.key==='Enter') createRace(); });
+</script>
+</body>
+</html>
