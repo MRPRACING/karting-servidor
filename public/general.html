@@ -1823,26 +1823,38 @@
     try{ await loadPanelCfg(); }catch(_){}
     try{ await loadDriverDB(); }catch(_){}
     try{ recompute(); }catch(_){}
+    try{ renderHead(); }catch(_){}
     try{ render(); }catch(_){}
   }
-  function syncSendNow(){ if(_applyingRemote)return; if(!(_syncWS&&_syncWS.readyState===1))return; try{ _syncWS.send(JSON.stringify({type:'state',state:window.__mrpMem||{}})); }catch(_){} }
+  const SYNCF=['toprebufo','topknint','topmargin','cf_h','cf_stops','cf_max','cf_min','cf_pitmin','cf_drvmin','cf_boxclose','cf_rows','cf_per'];
+  function captureFields(){ const f={}; SYNCF.forEach(id=>{ const el=document.getElementById(id); if(el) f[id]=el.value; }); return f; }
+  function syncSendNow(){ if(_applyingRemote)return; if(!(_syncWS&&_syncWS.readyState===1))return; try{ _syncWS.send(JSON.stringify({type:'state',state:{kv:window.__mrpMem||{},f:captureFields(),me:(typeof me!=='undefined'?me:null)}})); }catch(_){} }
   window.__mrpSync=function(){ if(_applyingRemote)return; if(_syncTimer)clearTimeout(_syncTimer); _syncTimer=setTimeout(syncSendNow,450); };
+  document.addEventListener('input',ev=>{ const id=ev.target&&ev.target.id; if(id&&SYNCF.indexOf(id)>=0&&window.__mrpSync)window.__mrpSync(); });
+  document.addEventListener('change',ev=>{ const id=ev.target&&ev.target.id; if(id&&(SYNCF.indexOf(id)>=0||id==='set_me')&&window.__mrpSync)window.__mrpSync(); });
   function syncConnect(){
     if(location.protocol==='file:')return;
     const url=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws';
     try{ _syncWS=new WebSocket(url); }catch(e){ return; }
     _syncWS.onopen=()=>{ try{ _syncWS.send(JSON.stringify({type:'join',id:'live'})); }catch(_){} };
     _syncWS.onmessage=async(ev)=>{ let m; try{ m=JSON.parse(ev.data); }catch(_){ return; }
-      if(m.type==='state'){
-        if(m.state && typeof m.state==='object' && Object.keys(m.state).length){
-          _applyingRemote=true;
-          try{
-            window.__mrpMem=Object.assign({},m.state);
-            try{ Object.keys(m.state).forEach(k=>{ try{ localStorage.setItem('mrp:'+k,m.state[k]); }catch(_){} }); }catch(_){}
-            await reapplyAll();
-          } finally { _applyingRemote=false; }
-        } else { syncSendNow(); }   // sala vacía: subo mi estado para inicializarla
-      }
+      if(m.type!=='state') return;
+      const st=m.state; if(!st||typeof st!=='object') return;
+      const rich=('kv'in st)||('f'in st)||('me'in st);
+      const kv=rich?(st.kv||{}):st, fields=rich?(st.f||{}):{}, meVal=rich?st.me:undefined;
+      if(!(Object.keys(kv).length||Object.keys(fields).length||(meVal!==undefined&&meVal!==null))){ syncSendNow(); return; }
+      _applyingRemote=true;
+      try{
+        window.__mrpMem=Object.assign({},kv);
+        try{ Object.keys(kv).forEach(k=>{ try{ localStorage.setItem('mrp:'+k,kv[k]); }catch(_){} }); }catch(_){}
+        try{ Object.keys(fields).forEach(fid=>{ const el=document.getElementById(fid); if(el&&document.activeElement!==el) el.value=fields[fid]; }); }catch(_){}
+        try{ if(meVal!==undefined&&meVal!==null){ me=+meVal; teams.forEach(t=>t.you=(t.dorsal===me)); } }catch(_){}
+        await reapplyAll();
+        try{ syncConfig(); }catch(_){}
+        try{ planner(); }catch(_){}
+        try{ renderHead(); }catch(_){}
+        try{ render(); }catch(_){}
+      } finally { _applyingRemote=false; }
     };
     _syncWS.onclose=()=>{ _syncWS=null; setTimeout(syncConnect,2500); };
     _syncWS.onerror=()=>{};
