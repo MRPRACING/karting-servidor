@@ -1854,6 +1854,11 @@
     if(nw){openForm(null);return;}
     if(sel){const c=circuits.find(x=>x.id===sel.dataset.sel);if(c)selectCircuit(c);}});
   $('modeReal').addEventListener('click',()=>{$('modemenu').style.display='none';document.body.classList.add('realmode');selectCircuit({name:'En vivo · Apex',stops:17,maxs:60,mins:5,pitmin:30,drvmin:60,drvOn:false,dry:48,wet:65,rows:3,per:3,sectors:0});$('apexmodal').style.display='flex';});
+  // servido desde el servidor: entrar en Real y conectar solos (abrir enlace = carrera al momento, como Apex)
+  if(location.protocol!=='file:'){
+    setTimeout(()=>{ const mm=document.getElementById('modemenu'); const mr=document.getElementById('modeReal'); if(mm&&mr&&getComputedStyle(mm).display!=='none') mr.click(); }, 250);
+    { const _mr=document.getElementById('modeReal'); if(_mr) _mr.addEventListener('click',()=>{ setTimeout(()=>{ try{ apexConnect(); const am=document.getElementById('apexmodal'); if(am) am.style.display='none'; }catch(e){} }, 500); }); }
+  }
   loadCircuits().then(loadLayout).then(loadDriverDB).then(loadAlgo).catch(()=>{}).then(()=>{try{setSectorCols(nSectors);recompute();renderHome();}catch(_){}$('modeReal').click();});
 
   let pt=performance.now(),lastR=0;
