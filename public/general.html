@@ -1875,15 +1875,19 @@
     apexWS.onmessage=ev=>{if(typeof ev.data==='string')applyApex(ev.data);else if(ev.data instanceof Blob)ev.data.text().then(applyApex);};
     document.getElementById('apexconn').textContent='Desconectar';}
   function apexDisconnect(){apexManual=true;try{if(apexWS)apexWS.close();}catch(e){}apexWS=null;apexStatus('desconectado','');document.getElementById('apexconn').textContent='Conectar';}
-  function applyApex(text){if(!text)return;apexMode=true;running=false;
+  function applyApex(text){if(!text)return;
+    const _tt=text.trim();
+    if(_tt==='relay|replaystart|'){apex._replaying=true;return;}
+    if(_tt==='relay|replayend|'){apex._replaying=false;apexSync();render();return;}
+    apexMode=true;running=false;
     for(let raw of text.split('\n')){let line=raw.replace(/\r$/,'');if(!line)continue;
       const hk=line.slice(0,line.indexOf('|'));
       if(/^(grid|com|init|css|title\d*|track|light|wth\d*|dyn\d+)$/.test(hk)){apexToken(line);}
       else{line.split(/ +(?=r\d+(?:c\d+)?\|)/).forEach(apexToken);}}
-    apexSync();render();}
+    apexSync();if(!apex._replaying)render();}
   function apexToken(tk){if(!tk)return;const i1=tk.indexOf('|');if(i1<0)return;const key=tk.slice(0,i1),restA=tk.slice(i1+1);const i2=restA.indexOf('|'),sub=i2<0?restA:restA.slice(0,i2),val=i2<0?'':restA.slice(i2+1);
     if(key==='init')apex.rows={};
-    else if(key==='dyn1'&&sub==='countdown'){const _nv=parseInt(val,10)||0;const _pv=apex.clockMs;const _tw=performance.now();if(apex._spSkip>0){apex._spSkip--;apex._accDc=0;apex._accDt=0;}else if(_pv!=null){const _d=_pv-_nv;if(_d>=0&&_d<120000){apex._accDc=(apex._accDc||0)+_d;apex._accDt=(apex._accDt||0)+Math.max(0,_tw-(apex._clkWall||_tw));if(apex._accDt>=250&&apex._accDc>0){const _sp=apex._accDc/apex._accDt;if(_sp>=0.1&&_sp<=80){if(apex._speed==null||_sp>apex._speed*1.8||_sp<apex._speed*0.55)apex._speed=_sp;else apex._speed=apex._speed*0.5+_sp*0.5;apex._speed=Math.max(0.1,Math.min(80,apex._speed));}apex._accDc=0;apex._accDt=0;}}else{apex._accDc=0;apex._accDt=0;}}apex._clkWall=_tw;apex._running=(_pv==null)?(_nv>0):(_nv<_pv-250?true:(_nv>_pv+1000?true:false));apex.clockMs=_nv;apex.clockAnchor=_tw;}
+    else if(key==='dyn1'&&sub==='countdown'){const _nv=parseInt(val,10)||0;const _pv=apex.clockMs;const _tw=performance.now();if(apex._replaying){apex._accDc=0;apex._accDt=0;}else if(apex._spSkip>0){apex._spSkip--;apex._accDc=0;apex._accDt=0;}else if(_pv!=null){const _d=_pv-_nv;if(_d>=0&&_d<120000){apex._accDc=(apex._accDc||0)+_d;apex._accDt=(apex._accDt||0)+Math.max(0,_tw-(apex._clkWall||_tw));if(apex._accDt>=250&&apex._accDc>0){const _sp=apex._accDc/apex._accDt;if(_sp>=0.1&&_sp<=80){if(apex._speed==null||_sp>apex._speed*1.8||_sp<apex._speed*0.55)apex._speed=_sp;else apex._speed=apex._speed*0.5+_sp*0.5;apex._speed=Math.max(0.1,Math.min(80,apex._speed));}apex._accDc=0;apex._accDt=0;}}else{apex._accDc=0;apex._accDt=0;}}apex._clkWall=_tw;apex._running=(_pv==null)?(_nv>0):(_nv<_pv-250?true:(_nv>_pv+1000?true:false));apex.clockMs=_nv;apex.clockAnchor=_tw;}
     else if(key==='title1')apex.title=val;
     else if(key==='title2')apex.title2=val;
     else if(key==='track')apex.track=val;
@@ -2005,7 +2009,7 @@
     try{
       if(running&&!finalized&&!apexMode){let adv=dtr*multiplier;while(adv>0){const s=Math.min(adv,2);tick(s);adv-=s;}}
       else if(apexMode&&!finalized){if(apex._live)now+=dtr*(apex._speed||1);const wn=performance.now();for(const t of teams){if(t._lapWall!=null){const byTime=(wn-t._lapWall)/1000;const frac=(t._secSum>0&&t.target>0)?Math.min(1,t._secSum/t.target):0;t.lapT=Math.min(t.target||1,Math.max(byTime,frac*(t.target||1)));}}}
-      if(ts-lastR>=85){lastR=ts;render();}
+      if(ts-lastR>=85&&!apex._replaying){lastR=ts;render();}
     }catch(err){if(!loop._warned){loop._warned=true;console.error('loop error:',err);}}
     requestAnimationFrame(loop);}
   requestAnimationFrame(loop);

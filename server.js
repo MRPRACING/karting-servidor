@@ -106,7 +106,7 @@ const server = http.createServer(async (req,res)=>{
   }
   if(u==='/api/health'){ return sendJson(res,{ok:true,sessions:sessions.length,tracks:tracks.length}); }
   if(u.split('?')[0]==='/api/relay'){
-    if(req.method==='POST'){ const b=await readBody(req); apexUrl=(b.url||'').toString().trim(); stateFrames.length=0; lastClock=null; try{if(upstream)upstream.terminate();}catch(_){}; upRetry=0; if(apexUrl) connectApex(); return sendJson(res,{ok:true,url:apexUrl}); }
+    if(req.method==='POST'){ const b=await readBody(req); apexUrl=(b.url||'').toString().trim(); stateLines={}; lastClock=null; allFrames.length=0; try{if(upstream)upstream.terminate();}catch(_){}; upRetry=0; if(apexUrl) connectApex(); return sendJson(res,{ok:true,url:apexUrl}); }
     return sendJson(res,{url:apexUrl, live:!!(upstream&&upstream.readyState===1), peers:feedWss?feedWss.clients.size:0});
   }
   // estático
@@ -156,21 +156,30 @@ const APEX_ENDPOINT = process.env.APEX_WS || 'wss://live-data.apex-timing.com:79
 const APEX_ORIGIN   = 'https://www.apex-timing.com';
 let apexUrl = (process.env.APEX_URL || '').trim();   // URL de la carrera (página); se fija en runtime vía /api/relay
 let upstream = null, upRetry = 0, upTimer = null;
-let stateFrames = [], lastClock = null;
+let stateLines = {}, lastClock = null, allFrames = [];
 const feedWss = new WebSocketServer({ noServer:true });  // feed de Apex
 const injectWss = new WebSocketServer({ noServer:true });  // fuente externa (reproductor) inyecta el feed
 injectWss.on('connection', ws=>{ console.log('[inject] fuente conectada (reproductor)'); ws.on('message', data=>{ const text=data.toString(); cacheFrame(text); feedBroadcast(text); }); });
 function feedBroadcast(text){ for(const c of feedWss.clients){ if(c.readyState===1){ try{ c.send(text); }catch(_){} } } }
+function chanOf(line){ const i=line.indexOf('|'); if(i<0)return line; const j=line.indexOf('|',i+1); return line.slice(0,i)+'|'+((j<0)?'':line.slice(i+1,j)); }
 function cacheFrame(text){
-  if(/^(init\|)/m.test(text) || /^grid\|\|/m.test(text)) stateFrames.length=0;
-  if(/^(grid\|\||title1\||title2\||track\||css\||light\||wth)/m.test(text)) stateFrames.push(text);
-  const m=text.match(/^dyn1\|countdown\|(\d+)/m); if(m) lastClock=m[1];
-  if(stateFrames.length>40) stateFrames.shift();
+  if(/^init\|/m.test(text)){ stateLines={}; allFrames.length=0; }   // nueva sesión: empezar histórico de cero
+  allFrames.push(text); if(allFrames.length>150000) allFrames.shift();
+  for(const line of text.split('\n')){ if(!line) continue; stateLines[chanOf(line)]=line; const m=line.match(/^dyn1\|countdown\|(\d+)/); if(m) lastClock=m[1]; }
 }
 feedWss.on('connection', client=>{
-  for(const fr of stateFrames){ try{ client.send(fr); }catch(_){} }
-  if(lastClock){ try{ client.send('dyn1|countdown|'+lastClock); }catch(_){} }
-  try{ client.send('relay|status|'+(upstream&&upstream.readyState===1?'feed de Apex en vivo':'esperando feed de Apex…')); }catch(_){}
+  try{
+    if(allFrames.length){                          // REPROCESO: reenviar toda la carrera para reconstruir TODO
+      client.send('relay|replaystart|');
+      for(const fr of allFrames){ client.send(fr); }
+      client.send('relay|replayend|');
+    } else {
+      const vals=Object.values(stateLines);
+      if(vals.length) client.send(vals.join('\n'));
+    }
+    if(lastClock) client.send('dyn1|countdown|'+lastClock);
+    client.send('relay|status|'+(upstream&&upstream.readyState===1?'feed de Apex en vivo':'esperando feed de Apex…'));
+  }catch(_){}
 });
 function connectApex(){
   if(!apexUrl) return;
