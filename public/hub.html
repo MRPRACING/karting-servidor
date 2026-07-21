@@ -79,8 +79,12 @@ function fmtDate(ts){ const d=new Date(ts); return d.toLocaleDateString('es-ES')
 
 async function loadList(){
   const box=$('raceList'); box.innerHTML='<div class="empty">Cargando…</div>';
+  const createRow=$('raceName')?$('raceName').parentElement:null;
   try{
     const r=await fetch('/api/sessions?gestor='+gestor); const {sessions}=await r.json();
+    const onlyOne=(gestor==='general'), full=(onlyOne && sessions.length>=1);
+    if(createRow) createRow.style.display=full?'none':'';
+    { const h=$('hint'); if(h){ if(full) h.textContent='Solo una carrera a la vez en el gestor general (el relé de Apex lee una sola). Bórrala para crear otra.'; else h.textContent = gestor==='boxes' ? 'El gestor de boxes también puede usarse sin servidor (offline) abriendo su archivo directamente. Aquí, en el servidor, se sincroniza entre dispositivos.' : 'El gestor general está pensado para usarse con Apex Timing. Aquí se sincroniza entre dispositivos.'; } }
     if(!sessions.length){ box.innerHTML='<div class="empty">Aún no hay carreras. Crea una arriba.</div>'; return; }
     box.innerHTML='';
     for(const s of sessions){

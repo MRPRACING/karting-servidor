@@ -60,6 +60,11 @@ function safeStatic(res, urlPath){
 const server = http.createServer(async (req,res)=>{
   const u = req.url || '/';
   // API
+  if(u.split('?')[0]==='/api/session'){                    // una sola carrera (con url/origin)
+    const id=new URL(u,'http://x').searchParams.get('id');
+    const s=sessions.find(x=>x.id===id)||null;
+    return sendJson(res,{session:s});
+  }
   if(u.startsWith('/api/sessions')){
     if(req.method==='GET'){
       const gestor=new URL(u,'http://x').searchParams.get('gestor');
@@ -70,7 +75,7 @@ const server = http.createServer(async (req,res)=>{
       const b=await readBody(req);
       const gestor=(b.gestor==='general')?'general':'boxes';
       const name=(b.name||'').toString().trim().slice(0,60)||'Carrera';
-      const s={id:newId(),name,gestor,created:Date.now()};
+      const s={id:newId(),name,gestor,created:Date.now(),url:'',origin:''};
       sessions.push(s); saveSessions(sessions);
       return sendJson(res,{session:s},201);
     }
@@ -106,7 +111,7 @@ const server = http.createServer(async (req,res)=>{
   }
   if(u==='/api/health'){ return sendJson(res,{ok:true,sessions:sessions.length,tracks:tracks.length}); }
   if(u.split('?')[0]==='/api/relay'){
-    if(req.method==='POST'){ const b=await readBody(req); apexUrl=(b.url||'').toString().trim(); apexUserOrigin=(b.origin||'').toString().trim(); stateLines={}; lastClock=null; allFrames.length=0; try{if(upstream)upstream.terminate();}catch(_){}; upRetry=0; if(apexUrl) connectApex(); return sendJson(res,{ok:true,url:apexUrl}); }
+    if(req.method==='POST'){ const b=await readBody(req); apexUrl=(b.url||'').toString().trim(); apexUserOrigin=(b.origin||'').toString().trim(); stateLines={}; lastClock=null; allFrames.length=0; try{if(upstream)upstream.terminate();}catch(_){}; upRetry=0; if(apexUrl) connectApex(); if(b.session){ const s=sessions.find(x=>x.id===b.session); if(s){ s.url=apexUrl; s.origin=apexUserOrigin; saveSessions(sessions); } } return sendJson(res,{ok:true,url:apexUrl}); }
     return sendJson(res,{url:apexUrl, live:!!(upstream&&upstream.readyState===1), peers:feedWss?feedWss.clients.size:0});
   }
   // estático

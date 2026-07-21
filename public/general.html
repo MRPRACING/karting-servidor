@@ -124,6 +124,7 @@
   .you .dorsal{background:var(--amber);color:#1a1304;border-color:var(--amber)}
   .flag{color:var(--red);margin-right:5px}
   .tname{cursor:pointer;border-bottom:1px dotted var(--dim2)}
+  .tname.xgreen{color:#37d67a;border-bottom-color:#37d67a;text-shadow:0 0 6px rgba(55,214,122,.45)}
   tr.hov .tname{color:var(--cyan);border-color:var(--cyan)}
   .drv{display:inline-flex;align-items:center;gap:7px}
   .dchip{font-family:var(--mono);font-size:11px;min-width:22px;text-align:center;padding:1px 4px;border-radius:4px;background:#0c1016;border:1px solid #0a0d12}
@@ -313,6 +314,9 @@
   .segturno{text-align:right}
   .segturno .sl{font-size:11px;color:var(--dim)}
   .segturno .sv{font-family:var(--mono);font-size:22px;font-weight:700}
+  .semstints{margin-top:8px;max-height:230px;overflow-y:auto;border-top:1px solid #1b212c;padding-top:2px}
+  .ehrow{cursor:pointer;border-radius:5px} .ehrow:hover{background:rgba(55,200,214,.08)}
+  .ehin{width:74px;background:#0a0e14;border:1px solid var(--cyan);color:var(--txt);border-radius:5px;font-family:var(--mono);font-size:12px;padding:1px 4px;text-align:right}
   .ttrow{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);margin:12px 0 4px}
   .ttbar{height:9px;border-radius:5px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
   .ttbar i{display:block;height:100%}
@@ -698,15 +702,18 @@
 /* Capa de guardado: localStorage (persiste por equipo) + gancho de sincronización con el servidor */
 (function(){
   if(window.storage) return;                 // si el entorno ya lo provee, no tocar
+  var SID; try{ SID=new URLSearchParams(location.search).get('session')||'live'; }catch(_){ SID='live'; }
+  var PFX='mrp:'+SID+':';                     // ajustes INDEPENDIENTES por carrera
+  window.__mrpLSPfx = PFX;
   window.__mrpMem = window.__mrpMem || {};
   var mem = window.__mrpMem;
-  function lg(k){ try{ return localStorage.getItem('mrp:'+k); }catch(_){ return null; } }
-  function ls(k,v){ try{ localStorage.setItem('mrp:'+k, v); }catch(_){} }
-  try{ for(var i=0;i<localStorage.length;i++){ var kk=localStorage.key(i); if(kk&&kk.indexOf('mrp:')===0) mem[kk.slice(4)]=localStorage.getItem(kk); } }catch(_){}
+  function lg(k){ try{ return localStorage.getItem(PFX+k); }catch(_){ return null; } }
+  function ls(k,v){ try{ localStorage.setItem(PFX+k, v); }catch(_){} }
+  try{ for(var i=0;i<localStorage.length;i++){ var kk=localStorage.key(i); if(kk&&kk.indexOf(PFX)===0) mem[kk.slice(PFX.length)]=localStorage.getItem(kk); } }catch(_){}
   window.storage={
     get:function(k){ var v=(k in mem)?mem[k]:lg(k); return Promise.resolve(v==null?null:{key:String(k),value:v}); },
     set:function(k,v){ mem[k]=v; ls(k,v); if(window.__mrpSync)window.__mrpSync(); return Promise.resolve({key:String(k),value:v}); },
-    delete:function(k){ delete mem[k]; try{localStorage.removeItem('mrp:'+k);}catch(_){}; if(window.__mrpSync)window.__mrpSync(); return Promise.resolve({key:String(k),deleted:true}); },
+    delete:function(k){ delete mem[k]; try{localStorage.removeItem(PFX+k);}catch(_){}; if(window.__mrpSync)window.__mrpSync(); return Promise.resolve({key:String(k),deleted:true}); },
     list:function(pre){ var ks=Object.keys(mem).filter(function(kn){return !pre||kn.indexOf(pre)===0;}); return Promise.resolve({keys:ks}); }
   };
 })();
@@ -932,6 +939,8 @@
   function swap(t,r){r=clamp(r|0,0,rowsN-1);if(!rows[r]||!rows[r].length){r=rows.findIndex(x=>x&&x.length);if(r<0)return;}r=nrRow(t,r);if(!rows[r]||!rows[r].length){r=rows.findIndex(x=>x&&x.length);if(r<0)return;}const inId=rows[r].shift();if(karts[t.kart-1])karts[t.kart-1].drop={dorsal:t.dorsal,name:t.name};rows[r].push(t.kart);pushUsed(t,t.kart);t.kart=inId;assignFlush(t,inId);pushUsed(t,inId);t.stops++;t.assigned=true;if(noRepeat||Math.random()<0.5)t.di=(t.di+1)%t.drivers.length;}
   function assign(d,r){const t=teams.find(x=>x.dorsal===d);if(!t||t.assigned)return;swap(t,r);const i=pending.indexOf(d);if(i>=0)pending.splice(i,1);}
   function apexPitIn(t){ if(!t._pitHeld){ t._pitInLaps=t.laps; if(mode!=='auto' && t.kart){ holding.push({kart:t.kart,dorsal:t.dorsal,name:t.name,pitAt:now,seq:++_pitCounter}); t.waitKart=true; t.placed=false; t.assigned=false; t.kart=0; t.exitUnassigned=false; } } t._pitHeld=true; }
+  function apexTurnClose(t){ if(t.stintStart==null)return; const dur=now-t.stintStart; if(!(dur>0))return; const _sl=t.stintLaps||[]; const _avg=_sl.length?_sl.reduce((a,b)=>a+b,0)/_sl.length:null; (t.history||(t.history=[])).push({type:'stint',kart:t.kart,dur,avg:_avg}); if(t.history.length>80)t.history.shift(); }   // cierra el turno que acaba: guarda su duración y media
+  function apexPitClose(t,dur){ if(dur==null)dur=(t.pitStart?now-t.pitStart:0); (t.history||(t.history=[])).push({type:'pit',dur:Math.max(0,dur)}); if(t.history.length>80)t.history.shift(); }   // cierra la parada: guarda su duración (real = pit-in→pit-out, o estimada)
 
   // ---- Estrategia automática de los equipos rivales ----
   // Nivel del equipo = media de notas de sus pilotos. Rivales directos = mismo escalón.
@@ -1150,7 +1159,7 @@
     let h='<div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:2px 0 6px">Sanciones pendientes ('+pend.length+')</div>';
     h+=pend.length?pend.map(p=>`<div class="pen"><span>🛑 <b>#${p.d}</b> ${p.name} · ${p.text}</span><button data-fserve="${p.id}" data-fteam="${p.d}">Marcar cumplida</button></div>`).join(''):'<div class="empty">Ninguna pendiente.</div>';
     h+='<div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:14px 0 6px">Histórico ('+feed.length+')</div>';
-    h+=feed.length?feed.map(m=>{const tg=m.kind==='timing'?'timing':m.kind==='auto'?'auto':'info',lbl=m.kind==='timing'?'Sanción':m.kind==='auto'?'Aviso':'Info';return `<div class="msg ${m.served?'served':''}"><span class="tag ${tg}">${lbl}</span><span><b>#${m.d}</b> ${m.text} <span class="x">· ${fmtClock(m.t)}</span></span></div>`;}).join(''):'<div class="empty">Sin avisos.</div>';
+    h+=feed.length?feed.map(m=>{const tg=m.kind==='timing'?'timing':m.kind==='auto'?'auto':'info',lbl=m.kind==='timing'?'Sanción':m.kind==='auto'?'Aviso':'Info';return `<div class="msg ${m.served?'served':''}"><span class="tag ${tg}">${lbl}</span><span><b>#${m.d}</b> ${m.text} <span class="x">· ${m.clk?m.clk:fmtClock(m.t)}</span></span></div>`;}).join(''):'<div class="empty">Sin avisos.</div>';
     return h;
   }
   function renderFeedAll(){const el=document.getElementById('feedall');if(el)el.innerHTML=feedAllHTML();}
@@ -1193,7 +1202,7 @@
   const COLS={
     pos:{label:'Pos',cls:'pos',get:(t,c)=>c.i+1},
     num:{label:'#',cls:'l',get:(t,c)=>`${c.fl}<span class="dorsal">${t.dorsal}</span>`},
-    team:{label:'Equipo',cls:'l',get:(t)=>`<span class="tname" data-team="${t.dorsal}">${t.name}</span><span class="ontrack">${t.retired?'<span style="color:var(--dim)">retirado</span>':(t.waitKart&&t.inPit?`<span style="color:var(--amber)">esperando kart · ${mmss(now-t.pitStart)}</span>`:t.inPit?`<span style="color:var(--cyan)">boxes</span>`:drv(t).name)}</span>`},
+    team:{label:'Equipo',cls:'l',get:(t)=>`<span class="tname${(t._nameGreen&&sessionKind()==='carrera')?' xgreen':''}" data-team="${t.dorsal}">${t.name}</span><span class="ontrack">${t.retired?'<span style="color:var(--dim)">retirado</span>':(t.waitKart&&t.inPit?`<span style="color:var(--amber)">esperando kart · ${mmss(now-t.pitStart)}</span>`:t.inPit?`<span style="color:var(--cyan)">boxes</span>`:drv(t).name)}</span>`},
     driver:{label:'Fiable',cls:'l colfiable',get:(t,c)=>c.dchip||'<span class="muted">—</span>'},
     turno:{label:'Turno',cls:'',get:(t,c)=>c.turno},
     gap:{label:'Gap',cls:'',get:(t,c)=>c.gapcell},
@@ -1359,7 +1368,7 @@
     document.getElementById('penalcount').textContent=unserved?unserved+' sin cumplir':'';
     document.getElementById('feed').innerHTML=feed.length?feed.slice(0,12).map(m=>{const tg=m.kind==='timing'?'timing':m.kind==='auto'?'auto':'info';const lbl=m.kind==='timing'?'Sanción':m.kind==='auto'?'Aviso':'Info';
       const served=teams.find(t=>t.dorsal===m.d)&&!teams.find(t=>t.dorsal===m.d).penalties.find(p=>p.id===m.id&&!p.served);
-      return `<div class="msg ${served?'served':''}"><span class="tag ${tg}">${lbl}</span><span><b>#${m.d}</b> ${m.text} <span class="x">· ${fmtClock(m.t)}</span></span></div>`;}).join(''):'<div class="empty">Sin avisos por ahora.</div>';
+      return `<div class="msg ${served?'served':''}"><span class="tag ${tg}">${lbl}</span><span><b>#${m.d}</b> ${m.text} <span class="x">· ${m.clk?m.clk:fmtClock(m.t)}</span></span></div>`;}).join(''):'<div class="empty">Sin avisos por ahora.</div>';
     if(feedOpen)renderFeedAll();
     if(kartInfoOpen)renderKartInfo();
 
@@ -1384,11 +1393,13 @@
       you.drivers.forEach(dd=>{const r=dmW-dd.time;if(r>0&&r>raceRem)warns.push(`${dd.name} ya no puede llegar a su mínimo (${mmss(dmW)}).`);});}
     if(noRepeat&&you.drivers.length<2)warns.push('Modo "no repetir piloto" activo pero el equipo tiene un solo piloto.');
     const warnHtml=warns.length?`<div class="warns">${warns.map(w=>`<div class="warn">⚠ ${w}</div>`).join('')}</div>`:'';
-    document.getElementById('sem').innerHTML=`<div class="seghead">Nota de tu kart</div>
+    if(!(document.activeElement&&document.activeElement.classList&&document.activeElement.classList.contains('ehin'))) document.getElementById('sem').innerHTML=`<div class="seghead">Tu equipo · #${me}</div>
       <div class="segrow"><div class="bignote" style="color:${cc}">${cp==null?'—':cp.toFixed(0)+'<i>%</i>'}</div>
-      <div class="segturno"><div class="sl">Turno</div><div class="sv">${you.inPit?'boxes · '+pitClock(you):mmss(now-you.stintStart)}</div></div></div>
+      <div class="segturno"><div class="sl">${you.inPit?'En boxes':'Turno'}</div><div class="sv">${you.inPit?'boxes · '+pitClock(you):mmss(now-you.stintStart)}</div></div></div>
       <div class="ttrow"><span>Tiempo de turno</span><span>máx ${mmss(MAX_STINT)}</span></div>
-      <div class="ttbar"><i style="width:${ttFrac*100}%;background:${ttCol}"></i></div>${warnHtml}`;
+      <div class="ttbar"><i style="width:${ttFrac*100}%;background:${ttCol}"></i></div>
+      <div class="ttrow" style="margin-top:10px"><span>Paradas ${you.stops}/${Nman}</span><span>Turnos ${(you.history||[]).filter(h=>h.type==='stint').length+(you.inPit?0:1)}</span></div>
+      <div class="semstints">${(function(){let sc=0,pc=0,o='';(you.history||[]).forEach(function(h,i){if(h.type==='stint'){sc++;o+='<div class="hrow ehrow" data-eh="'+i+'"><span class="htag">Turno '+sc+'</span><span class="hdur">'+mmss(h.dur)+(h.avg!=null?' <span class="muted">· med '+fmtLap(h.avg)+'</span>':'')+'</span></div>';}else{pc++;o+='<div class="hrow pit ehrow" data-eh="'+i+'"><span class="htag">Parada '+pc+'</span><span class="hdur">'+mmss(h.dur||0)+'</span></div>';}});if(!you.inPit){sc++;o+='<div class="hrow cur"><span class="htag">Turno '+sc+'</span><span class="hdur">'+mmss(now-you.stintStart)+' <span class="muted">en curso</span></span></div>';}var _pf=window.__mrpPlanF;if(_pf&&_pf.durs&&_pf.durs.length){o+='<div class="hrow" style="border-top:2px dashed #1b212c;margin-top:4px"><span class="htag" style="color:var(--dim)">Plan futuro</span><span class="hdur muted">'+_pf.remStops+' paradas</span></div>';_pf.durs.forEach(function(d){o+='<div class="hrow pit" style="opacity:.7"><span class="htag">Parada</span><span class="hdur muted">'+mmss(_pf.pitT)+'</span></div>';sc++;o+='<div class="hrow" style="opacity:.7"><span class="htag">Turno '+sc+'</span><span class="hdur muted">'+mmss(d)+'</span></div>';});}return o||'<div class="muted" style="font-size:11px;padding:4px 0">Sin turnos aún.</div>';})()}</div>${warnHtml}`;
 
     }
     if(selected!=null){const _t=teams.find(x=>x.dorsal===selected);
@@ -1541,26 +1552,47 @@
       maxs=(+document.getElementById('cf_max').value||60)*60,mins=(+document.getElementById('cf_min').value||5)*60,
       pitT=Math.max(0,MIN_PIT||0),boxClose=Math.max(0,(+document.getElementById('cf_boxclose').value||0)*60),
       race=h*3600;
-    const remStops=Math.max(0,Nstops-(you?you.stops:0)),R=Math.max(0,race-now),remStints=remStops+1;
-    const budget=Math.max(0,R-remStops*pitT);
+    const remStops=Math.max(0,Nstops-(you?you.stops:0)),R=Math.max(0,race-now);
+    const _curSeg=you.inPit?0:Math.max(0,now-you.stintStart), _reserveCur=Math.max(0,mins-_curSeg);   // el turno actual se asume que dura al menos el turno mínimo
+    const planStints=remStops;                                                                          // se reparte SOLO entre los turnos futuros; el actual va aparte (desde cero)
+    const budget=Math.max(0,R-_reserveCur-remStops*pitT);
     const effMin=mins+60,effMax=Math.max(effMin,maxs-120);
-    let dump=clamp(Math.floor((remStints*effMax-budget)/Math.max(1,effMax-effMin)),0,remStints),longN=remStints-dump;
+    let dump=clamp(Math.floor((planStints*effMax-budget)/Math.max(1,effMax-effMin)),0,planStints),longN=planStints-dump;
     const lastShort=Math.max(effMin,boxClose);
     let shortTotal=dump>0?(dump-1)*effMin+lastShort:0;
     let longBudget=Math.max(0,budget-shortTotal);
     let balance=longN>0?clamp(longBudget-(longN-1)*effMax,0,effMax):0;
-    document.getElementById('kpi_total').textContent=remStints;document.getElementById('kpi_dump').textContent=dump;
+    document.getElementById('kpi_total').textContent=planStints;document.getElementById('kpi_dump').textContent=dump;
     let durs=[];
     for(let i=0;i<longN;i++)durs.push(i===longN-1?balance:effMax);
     for(let i=0;i<dump;i++)durs.push(i===dump-1?lastShort:effMin);
     if(boxClose>0&&durs.length){const li=durs.length-1;if(durs[li]<boxClose){const need=boxClose-durs[li];durs[li]=boxClose;if(longN>0)durs[longN-1]=Math.max(0,durs[longN-1]-need);}}
+    window.__mrpPlanF={durs:durs.slice(),remStops,pitT,longN,dump};
     const dmin=Math.min(...durs,effMax),dmax=Math.max(...durs,effMin),rng=Math.max(1,dmax-dmin);
     let sh=durs.map((d,i)=>{const f=(d-dmin)/rng,col=`hsl(${(120*f).toFixed(0)},66%,52%)`,bal=(i===longN-1&&longN>0&&dump<remStints);return `<div class="stint ${bal?'balance':''}" style="border-color:${col};color:${col}" title="${bal?'Turno balance (se ajusta con el tiempo)':''}">${mmss(Math.max(0,d))}</div>`;}).join('');
     const shHtml=sh||'<span class="hhint">Carrera completada.</span>',stEl=document.getElementById('stints');if(stEl._sig!==shHtml){stEl._sig=shHtml;stEl.innerHTML=shHtml;}
-    const sumT=durs.reduce((a,b)=>a+b,0)+remStops*pitT,fits=Math.abs(sumT-R)<2;
-    const rbHtml=`Suma turnos + ${remStops} paradas (${mmss(pitT)}) = <b style="color:${fits?'#37d67a':'#ff5d5d'}">${mmss(durs.reduce((a,b)=>a+b,0))} + ${mmss(remStops*pitT)} = ${mmss(sumT)}</b> · restan ${mmss(R)}${boxClose>0?`<br><span style="color:var(--dim)">Box cierra los últimos ${mmss(boxClose)}: el último turno nunca baja de ahí.</span>`:''}<br>Pérdida neta por parada — <b>Seco ${DRY}s</b> · <b style="color:var(--cyan)">Lluvia ${WET}s</b>`;
+    const _Rf=Math.max(0,R-_reserveCur);const sumT=durs.reduce((a,b)=>a+b,0)+remStops*pitT,fits=Math.abs(sumT-_Rf)<2;
+    const rbHtml=`Suma turnos + ${remStops} paradas (${mmss(pitT)}) = <b style="color:${fits?'#37d67a':'#ff5d5d'}">${mmss(durs.reduce((a,b)=>a+b,0))} + ${mmss(remStops*pitT)} = ${mmss(sumT)}</b> · restan ${mmss(_Rf)}${boxClose>0?`<br><span style="color:var(--dim)">Box cierra los últimos ${mmss(boxClose)}: el último turno nunca baja de ahí.</span>`:''}<br>Pérdida neta por parada — <b>Seco ${DRY}s</b> · <b style="color:var(--cyan)">Lluvia ${WET}s</b>`;
     const rbEl=document.getElementById('rainbox');if(rbEl._sig!==rbHtml){rbEl._sig=rbHtml;rbEl.innerHTML=rbHtml;}}
   ['cf_h','cf_stops','cf_max','cf_min','cf_pitmin','cf_drvmin','cf_boxclose'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{syncConfig();planner();}));
+  { const _sem=document.getElementById('sem'); if(_sem) _sem.addEventListener('click',function(e){
+    const row=e.target.closest('.ehrow'); if(!row)return; if(row.querySelector('input'))return;
+    const you=teams.find(t=>t.you); if(!you||!you.history)return;
+    const idx=+row.dataset.eh, h=you.history[idx]; if(!h)return;
+    const tEl=row.querySelector('.hdur'); if(!tEl)return; tEl.innerHTML='<input class="ehin" type="text" inputmode="numeric" value="'+mmss(h.dur||0)+'">';
+    const inp=tEl.querySelector('input'); inp.focus(); inp.select();
+    let done=false;
+    const commit=function(){ if(done)return; done=true; const v=inp.value.trim(); let secs=null;
+      if(/^\d+:\d{1,2}$/.test(v)){const p=v.split(':');secs=(+p[0])*60+(+p[1]);}
+      else if(/^\d+:\d{1,2}:\d{1,2}$/.test(v)){const p=v.split(':');secs=(+p[0])*3600+(+p[1])*60+(+p[2]);}
+      else if(/^\d+$/.test(v)){secs=+v;}
+      if(secs!=null&&secs>=0){ h.dur=Math.round(secs); h._edited=true; try{planner();}catch(_){} }
+      try{render();}catch(_){}
+    };
+    inp.addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ev.preventDefault();commit();} else if(ev.key==='Escape'){done=true;try{render();}catch(_){}} });
+    inp.addEventListener('blur',commit);
+    e.stopPropagation();
+  }); }
   {const g=document.getElementById('cf_gradint'); if(g) g.addEventListener('input',render);}
   {const kn=document.getElementById('topknint'); if(kn) kn.addEventListener('input',render);}
   {const rb=document.getElementById('toprebufo'); if(rb){rb.value=TOW_MAX; rb.addEventListener('input',render);}}
@@ -1893,11 +1925,12 @@
   window.__mrpSync=function(){ if(_applyingRemote)return; if(_syncTimer)clearTimeout(_syncTimer); _syncTimer=setTimeout(syncSendNow,450); };
   document.addEventListener('input',ev=>{ const id=ev.target&&ev.target.id; if(id&&SYNCF.indexOf(id)>=0&&window.__mrpSync)window.__mrpSync(); });
   document.addEventListener('change',ev=>{ const id=ev.target&&ev.target.id; if(id&&(SYNCF.indexOf(id)>=0||id==='set_me')&&window.__mrpSync)window.__mrpSync(); });
+  const MRP_SESSION=(function(){ try{ return new URLSearchParams(location.search).get('session')||'live'; }catch(_){ return 'live'; } })();
   function syncConnect(){
     if(location.protocol==='file:')return;
     const url=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws';
     try{ _syncWS=new WebSocket(url); }catch(e){ return; }
-    _syncWS.onopen=()=>{ try{ _syncWS.send(JSON.stringify({type:'join',id:'live'})); }catch(_){} };
+    _syncWS.onopen=()=>{ try{ _syncWS.send(JSON.stringify({type:'join',id:MRP_SESSION})); }catch(_){} };
     _syncWS.onmessage=async(ev)=>{ let m; try{ m=JSON.parse(ev.data); }catch(_){ return; }
       if(m.type!=='state') return;
       const st=m.state; if(!st||typeof st!=='object') return;
@@ -1907,7 +1940,7 @@
       _applyingRemote=true;
       try{
         window.__mrpMem=Object.assign({},kv);
-        try{ Object.keys(kv).forEach(k=>{ try{ localStorage.setItem('mrp:'+k,kv[k]); }catch(_){} }); }catch(_){}
+        try{ const _pfx=window.__mrpLSPfx||'mrp:'; Object.keys(kv).forEach(k=>{ try{ localStorage.setItem(_pfx+k,kv[k]); }catch(_){} }); }catch(_){}
         try{ Object.keys(fields).forEach(fid=>{ const el=document.getElementById(fid); if(el&&document.activeElement!==el) el.value=fields[fid]; }); }catch(_){}
         try{ if(meVal!==undefined&&meVal!==null){ me=+meVal; teams.forEach(t=>t.you=(t.dorsal===me)); } }catch(_){}
         try{ if(rich&&st.so) applySorteo(st.so); }catch(_){}
@@ -1982,7 +2015,7 @@
     if(dl){const id=dl.dataset.del;if(confirm('¿Borrar este circuito?')){circuits=circuits.filter(x=>x.id!==id);try{await window.storage.delete(CK+id,false);}catch(_){}renderHome();}return;}
     if(nw){openForm(null);return;}
     if(sel){const c=circuits.find(x=>x.id===sel.dataset.sel);if(c)selectCircuit(c);}});
-  $('modeReal').addEventListener('click',()=>{$('modemenu').style.display='none';document.body.classList.add('realmode');selectCircuit({name:'En vivo · Apex',stops:17,maxs:60,mins:5,pitmin:30,drvmin:60,drvOn:false,dry:48,wet:65,rows:3,per:3,sectors:0});$('apexmodal').style.display='flex';});
+  $('modeReal').addEventListener('click',()=>{$('modemenu').style.display='none';document.body.classList.add('realmode');selectCircuit({name:'En vivo · Apex',stops:17,maxs:60,mins:5,pitmin:30,drvmin:60,drvOn:false,dry:48,wet:65,rows:3,per:3,sectors:0});if(!window.__mrpAutoConnected)$('apexmodal').style.display='flex';});
   // servido desde el servidor: entrar en Real y conectar solos (abrir enlace = carrera al momento, como Apex)
   if(location.protocol!=='file:'){
     setTimeout(()=>{ const mm=document.getElementById('modemenu'); const mr=document.getElementById('modeReal'); if(mm&&mr&&getComputedStyle(mm).display!=='none') mr.click(); }, 250);
@@ -1994,7 +2027,7 @@
   // ====================== ORIGEN DE DATOS: APEX TIMING (alimenta el MISMO gestor) ======================
   let apexWS=null, apexManual=false, apexRetry=null;
   function apexStatus(s,cls){const el=document.getElementById('apexstatus');if(el){el.textContent=s;el.className='apexstat '+(cls||'');}updateBadge();}
-  function sessionKind(){ if(apex.sessForce) return apex.sessForce; const s=((apex.title2||'')+' '+(apex.title||'')).toLowerCase(); if(/quali|clasif|clasi|cronometrad|chrono|\btimed\b|hotlap|\bq[12]\b/.test(s)) return 'clasi'; if(/prove|libere|practice|entren|libres|livre|treino|aquecimento|\bwarm|shakedown|\btest\b|rodaje|calent/.test(s)) return 'entreno'; if(/final|corsa|corrida|\bgara|\brace\b|carrera|endurance|resistenc|\bheat\b/.test(s)) return 'carrera'; if(/\d+\s*(km|kms|kil[oó]met|mile|milla|miles|millas)/.test(s)) return 'carrera'; const hm=s.match(/(\d+(?:[.,]\d+)?)\s*(h(?![a-z])|horas?|hours?|ore|heures?|std|hrs?)/); if(hm) return parseFloat(hm[1].replace(',','.'))>=2?'carrera':'clasi'; if(/\d+\s*(min|minut)/.test(s)) return 'clasi'; return 'carrera'; }
+  function sessionKind(){ if(apex.sessForce) return apex.sessForce; const s=((apex.title2||'')+' '+(apex.title||'')).toLowerCase(); if(/quali|clasif|clasi|cronometrad|chrono|\btimed\b|hotlap|\bq[12]\b/.test(s)) return 'clasi'; if(/prove|libere|practice|entren|libres|livre|treino|aquecimento|\bwarm|shakedown|\btest\b|rodaje|calent|sesi[oó]n|session|sessione|sess[aã]o|sessi[oó]|sessie|s[eé]ance|sitzung/.test(s)) return 'entreno'; if(/final|corsa|corrida|\bgara|\brace\b|carrera|endurance|resistenc|\bheat\b/.test(s)) return 'carrera'; if(/\d+\s*(km|kms|kil[oó]met|mile|milla|miles|millas)/.test(s)) return 'carrera'; const hm=s.match(/(\d+(?:[.,]\d+)?)\s*(h(?![a-z])|horas?|hours?|ore|heures?|std|hrs?)/); if(hm) return parseFloat(hm[1].replace(',','.'))>=2?'carrera':'clasi'; if(/\d+\s*(min|minut)/.test(s)) return 'clasi'; return 'carrera'; }
   function updateBadge(){ const b=document.querySelector('.badge'); if(!b) return; if(!apexMode){ b.textContent='Sin conexión'; b.style.cursor=''; b.title=''; return; } const km={clasi:'Clasificación',entreno:'Entreno',carrera:'Carrera'}[sessionKind()]||'Carrera'; b.textContent=km+(apex.sessForce?' (fijo)':'')+' · '+(apex.title2||apex.title||'Apex'); b.style.cursor='pointer'; b.title='Clic: forzar Clasificación / Carrera / auto'; }
   function updateSessInd(){ const el=document.getElementById('sessind'); if(!el) return; if(!apexMode){ el.style.display='none'; return; } el.style.display='flex'; const ic=document.getElementById('sessicon'); if(ic) ic.textContent=(sessionKind()==='carrera')?'🏁':'⏱'; const rem=(apex.clockMs!=null)?Math.max(0,apex.clockMs/1000-(performance.now()-(apex.clockAnchor||performance.now()))/1000):0; const go=apex.light?(apex.light==='lg'):(!!apex._running&&rem>0.5); const sm=document.getElementById('sema'); if(sm) sm.className='sema'+(go?' go':' stop'); const _isRace=sessionKind()==='carrera'; if(go&&_isRace&&!apex._raceBeeped){beep();setTimeout(beep,200);setTimeout(beep,400);apex._raceBeeped=true;} if(!go||!_isRace)apex._raceBeeped=false; }
   function apexConnect(){const u=document.getElementById('apexurl');const url=u?u.value.trim():'';if(!url)return;apex._live=false;apex._speed=null;apex._clkWall=null;apex._accDc=0;apex._accDt=0;apex._spSkip=5;apexManual=false;if(apexRetry){clearTimeout(apexRetry);apexRetry=null;}try{if(apexWS)apexWS.close();}catch(e){}apexStatus('conectando…','wait');try{apexWS=new WebSocket(url);}catch(e){apexStatus('URL inválida','err');return;}
@@ -2027,7 +2060,7 @@
     else if(/^r\d+$/.test(key)&&sub==='#'){const r=apex.rows[key];if(r)r.pos=parseInt(val,10)||r.pos;}}
   function apexRow(id){if(!apex.rows[id])apex.rows[id]={id,pos:9999,cells:{},no:'',team:'',drlast:'',lastLlp:null,laps:[],lapCount:0,inPit:false};return apex.rows[id];}
   function apexGrid(html){const doc=new DOMParser().parseFromString('<table>'+html+'</table>','text/html');
-    doc.querySelectorAll('tr').forEach(tr=>{if(tr.classList.contains('head')){apex.cols={};apex.labels={};tr.querySelectorAll('td[data-id]').forEach(td=>{const id=td.getAttribute('data-id');apex.cols[id]=td.getAttribute('data-type')||'';apex.labels[id]=td.textContent.trim();});apex.byType={};Object.keys(apex.cols).forEach(c=>{if(apex.cols[c])apex.byType[apex.cols[c]]=c;});apex.penaCol=Object.keys(apex.labels).find(c=>!apex.cols[c]&&/pena|p[e\u00e9]nal|sanc|straf|kara|pokut|trest|rangaist/i.test(apex.labels[c]))||null;return;}
+    doc.querySelectorAll('tr').forEach(tr=>{if(tr.classList.contains('head')){apex.cols={};apex.labels={};tr.querySelectorAll('td[data-id]').forEach(td=>{const id=td.getAttribute('data-id');apex.cols[id]=td.getAttribute('data-type')||'';apex.labels[id]=td.textContent.trim();});apex.byType={};Object.keys(apex.cols).forEach(c=>{if(apex.cols[c])apex.byType[apex.cols[c]]=c;});apex.penaCol=Object.keys(apex.labels).find(c=>!apex.cols[c]&&/pena|p[e\u00e9]nal|sanc|straf|kara|pokut|trest|rangaist/i.test(apex.labels[c]))||null;apex.pitCol=apex.byType['pit']||Object.keys(apex.labels).find(c=>/^(pit|pits|stop|stops|arr[eê]t|parad|box)/i.test(apex.labels[c]))||null;return;}
       const rid=tr.getAttribute('data-id');if(!rid||rid==='r0')return;const r=apexRow(rid);r.pos=parseInt(tr.getAttribute('data-pos'),10)||r.pos;tr.querySelectorAll('[data-id]').forEach(el=>{const cid=el.getAttribute('data-id');if(!cid.startsWith(rid+'c'))return;apexSetCell(r,cid.slice(rid.length),el.textContent.trim(),el.className||'');});});apex.gotInit=true;}
   function apexCell(cid,cls,val){const m=cid.match(/^(r\d+)(c\d+)$/);if(!m)return;apexSetCell(apexRow(m[1]),m[2],(val===''&&cls==='')?'':val,cls);}
   function apexSetCell(r,col,v,cls){r.cells[col]={v,cls};const bt=apex.byType;
@@ -2059,28 +2092,37 @@
     const bv=Object.values(numBest),nMin=bv.length?Math.min(...bv):0,nMax=bv.length?Math.max(...bv):1;
     // Bloque H: intervalo al de delante = gap al líder[i] − gap al líder[i-1] (por posición), para feeds sin columna de intervalo
     {const _byPos=list.slice().sort((a,b)=>(a.pos||9999)-(b.pos||9999));let _pg=0;_byPos.forEach((r,i)=>{if(i===0){r._intAhead=null;_pg=0;return;}const g=apexToSec((r.cells[bt['gap']]||{}).v||'');r._intAhead=(g!=null)?Math.max(0,g-_pg):null;if(g!=null)_pg=g;});_byPos.forEach((r,i)=>{r._intBehind=(i<_byPos.length-1)?_byPos[i+1]._intAhead:null;});}
+    // Verde de cruce (solo carrera): referencia = mejor clasificado que NO esté en boxes; su paso por meta resetea los nombres verdes
+    let _refDorsal=null; { let _bp=Infinity; list.forEach(r=>{ const tt=apex.map[r.id]; const dor=r.no?+r.no:r.pos; const pos=(r.pos!=null?r.pos:9999); if(tt&&tt.inPit)return; if(pos<_bp){_bp=pos;_refDorsal=dor;} }); if(_refDorsal==null){ let _bp2=Infinity; list.forEach(r=>{ const dor=r.no?+r.no:r.pos; const pos=(r.pos!=null?r.pos:9999); if(pos<_bp2){_bp2=pos;_refDorsal=dor;} }); } }
+    let _leaderAbs=null; if(bt['tlp']==null){ list.forEach(r=>{ const _g=(((r.cells[bt['gap']]||{}).v)||'').trim(); const m=_g.match(/^lap\s+(\d+)/i); if(m)_leaderAbs=+m[1]; }); }
     list.forEach(r=>{let t=apex.map[r.id];
       if(!t){t={dorsal:r.no?+r.no:r.pos,name:r.team||r.no||('#'+r.pos),kart:r.no?+r.no:r.pos,drivers:[{name:r.driver||'—',dscore:5,pct:null,man:null,lock:false,samples:[],resid:null}],di:0,laps:0,lapSum:0,lapCnt:0,best:Infinity,worst:0,last:0,target:vRef,lapT:0,stintStart:(apex._greenNow||now),plan:0,stops:0,inPit:false,pitStart:now,pitDur:0,assigned:true,waitKart:false,you:false,penalties:[],history:[],lapLog:[],usedKarts:[],stintLaps:[],releaseAt:0};apex.map[r.id]=t;teams.push(t);}
       t.name=r.team||t.name;if(r.no){t.dorsal=+r.no;t.kart=+r.no;}if(t.drivers[0]&&r.driver)t.drivers[0].name=r.driver;
       if(apex.saved&&apex.saved.sess===sessId()&&apex.saved.teams&&apex.saved.teams[r.id]&&!t._restored){const sv=apex.saved.teams[r.id];if(sv.laps&&sv.laps.length&&r.laps.length<sv.laps.length)r.laps=sv.laps.concat(r.laps);if(sv.lapLog&&sv.lapLog.length&&t.lapLog.length<sv.lapLog.length)t.lapLog=sv.lapLog.slice();if(sv.stops>t.stops)t.stops=sv.stops;if(sv.best&&(!(t.best<Infinity)||sv.best<t.best))t.best=sv.best;if(sv.seen)t._seen=true;t._restored=true;}
       const ll=apexToSec((r.cells[bt['llp']]||{}).v);if(ll)t.last=ll;const bb=apexToSec((r.cells[bt['blp']]||{}).v);if(bb)t.best=bb;
       t._lastTxt=r.lastTxt||'';t._bestTxt=r.bestTxt||'';
+      if(bt['tlp']==null){                                           // el feed no trae columna de vueltas
+        if(_leaderAbs!=null){ const _g=(((r.cells[bt['gap']]||{}).v)||'').trim(); const _ml=_g.match(/^lap\s+(\d+)/i); const _md=_g.match(/^(\d+)\s+laps?\b/i); r._gapAbs=_ml?(+_ml[1]):(_md?(_leaderAbs-(+_md[1])):_leaderAbs); }
+        if(r._gapAbs!=null){ r._compLaps=Math.max(r._compLaps||0, r._gapAbs); }   // el Gap manda: VUE exacto y monótono (líder "Lap N", doblados "N Laps")
+        else { const _lt=(r.lastTxt||'').trim(); if(r._compLaps==null){ r._compLaps=0; r._lastLapTxt=_lt; } else if(_lt && _lt!==r._lastLapTxt){ r._compLaps++; r._lastLapTxt=_lt; } }   // sin Gap: contar por cambio de última vuelta
+        r.lapTotal=r._compLaps;
+      }
       t.laps=(r.lapTotal!=null)?r.lapTotal:t.laps;   // vueltas actuales
-      const pit=parseInt((r.cells[bt['pit']]||{}).v,10);
+      const pit=parseInt((r.cells[bt['pit']||apex.pitCol]||{}).v,10);
       const otrAvail=!!(bt['otr']&&r.otrCls);
       const staAvail=!!(bt['sta']&&r.staCls);
       if(!isNaN(pit)){ if(t._lastStops==null){t._lastStops=pit;}
-        else if(pit>t._lastStops){ if(t.history){t.history.push({type:'pit'});if(t.history.length>80)t.history.shift();} if(t.you)say('Parada en boxes registrada'); if(!staAvail&&!otrAvail){ t.pitStart=now; t._pitStartLap=t.laps; } t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; apexPitIn(t); }
+        else if(pit>t._lastStops){ if(t.you)say('Parada en boxes registrada'); if(!staAvail&&!otrAvail){ apexTurnClose(t); const _estp=Math.max(0,(t.last||0)-(recentPace(t)||t.last||0)); apexPitClose(t,_estp); t.pitStart=now; t._pitStartLap=t.laps; t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; apexPitIn(t); } }
         t._lastStops=pit; t.stops=pit; }
       if(staAvail){                                                  // BOXES por columna de ESTADO: 'si' = en boxes (parada real), 'so'/otro = fuera
         const nowIn=(r.staCls==='si') && !(t._pitInLaps!=null && t.laps>t._pitInLaps+1);
-        if(nowIn && !t.inPit){ recordTurn(t); t.pitStart=now; apexPitIn(t); }                        // entra a boxes: registra la nota del turno que acaba
-        else if(!nowIn && t.inPit){ if(t.waitKart)t.exitUnassigned=true; t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; t._pitHeld=false; }   // sale de boxes -> nuevo turno
+        if(nowIn && !t.inPit){ recordTurn(t); apexTurnClose(t); t.pitStart=now; apexPitIn(t); }       // entra a boxes: cierra el turno y arranca cronómetro de parada
+        else if(!nowIn && t.inPit){ apexPitClose(t); if(t.waitKart)t.exitUnassigned=true; t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; t._pitHeld=false; }   // sale de boxes: cierra la parada (tiempo real pit-in→pit-out)
         t.inPit=nowIn;
       } else if(otrAvail && r._wasTo){                               // fallback: columna 'In pista' (feeds sin estado si/so)
         const nowIn=(r.otrCls==='in' && /^\d+:\d\d/.test((r.otrVal||'').trim())) && !(t._pitInLaps!=null && t.laps>t._pitInLaps+1);
-        if(nowIn && !t.inPit){ t.pitStart=now; apexPitIn(t); }
-        else if(!nowIn && t.inPit){ if(t.waitKart)t.exitUnassigned=true; t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; t._pitHeld=false; }
+        if(nowIn && !t.inPit){ recordTurn(t); apexTurnClose(t); t.pitStart=now; apexPitIn(t); }
+        else if(!nowIn && t.inPit){ apexPitClose(t); if(t.waitKart)t.exitUnassigned=true; t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; t._pitHeld=false; }
         t.inPit=nowIn;
       } else if(otrAvail){
         t.inPit=false;
@@ -2092,7 +2134,7 @@
       // cruce de meta detectado por el contador de vueltas (fiable): aparece en óvalo y suma vuelta
       if(r.lapTotal!=null){
         if(t._lastLapTotal==null&&r.lapTotal>1){t._lastLapTotal=r.lapTotal;t._lapWall=performance.now();}
-        else if(r.lapTotal>(t._lastLapTotal||0)){const _prev=t._lastLapTotal||0;const _gap=r.lapTotal-_prev;t._lastLapTotal=r.lapTotal;t._seen=true;t._lapWall=performance.now();if(!t.inPit){t._flashAt=performance.now();t._pulse=true;}if(!apex._live){apex._live=true;}const lt=t.last||vRef;if(_gap>1&&_prev>0){const _est=(t.lapCnt>0?t.lapSum/t.lapCnt:lt);for(let _g=1;_g<_gap;_g++){t.lapSum+=_est;t.lapCnt++;t.lapLog.push({lap:_prev+_g,t:_est,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name,est:true});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(_est);if(t.stintLaps.length>200)t.stintLaps.shift();}apex._gaps=(apex._gaps||0)+(_gap-1);}t.lapSum+=lt;t.lapCnt++;t.lapLog.push({lap:r.lapTotal,t:lt,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(lt);if(t.stintLaps.length>200)t.stintLaps.shift();if(lt>0){r.laps.push(lt);if(r.laps.length>500)r.laps.shift();} {const _kid=t.kart; if(_kid){ const _K=karts[_kid-1]||(karts[_kid-1]={id:_kid,samples:[],pct:null,prov:true,stints:[],rawLaps:[]}); (_K.rawLaps||(_K.rawLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind}); if(_K.rawLaps.length>400)_K.rawLaps.shift(); (t.stintRaw||(t.stintRaw=[])).push({t:lt,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind}); if(t.stintRaw.length>60)t.stintRaw.shift(); } else if(t.exitUnassigned){ (t._orphanLaps||(t._orphanLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind}); if(t._orphanLaps.length>400)t._orphanLaps.shift(); }}}
+        else if(r.lapTotal>(t._lastLapTotal||0)){const _prev=t._lastLapTotal||0;const _gap=r.lapTotal-_prev;t._lastLapTotal=r.lapTotal;t._seen=true;if(sessionKind()==='carrera'){if(t.dorsal===_refDorsal){for(let _ci=0;_ci<teams.length;_ci++)teams[_ci]._nameGreen=false;}t._nameGreen=true;}t._lapWall=performance.now();if(!t.inPit){t._flashAt=performance.now();t._pulse=true;}if(!apex._live){apex._live=true;}const lt=t.last||vRef;if(_gap>1&&_prev>0){const _est=(t.lapCnt>0?t.lapSum/t.lapCnt:lt);for(let _g=1;_g<_gap;_g++){t.lapSum+=_est;t.lapCnt++;t.lapLog.push({lap:_prev+_g,t:_est,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name,est:true});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(_est);if(t.stintLaps.length>200)t.stintLaps.shift();}apex._gaps=(apex._gaps||0)+(_gap-1);}t.lapSum+=lt;t.lapCnt++;t.lapLog.push({lap:r.lapTotal,t:lt,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(lt);if(t.stintLaps.length>200)t.stintLaps.shift();if(lt>0){r.laps.push(lt);if(r.laps.length>500)r.laps.shift();} {const _kid=t.kart; if(_kid){ const _K=karts[_kid-1]||(karts[_kid-1]={id:_kid,samples:[],pct:null,prov:true,stints:[],rawLaps:[]}); (_K.rawLaps||(_K.rawLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind}); if(_K.rawLaps.length>400)_K.rawLaps.shift(); (t.stintRaw||(t.stintRaw=[])).push({t:lt,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind}); if(t.stintRaw.length>60)t.stintRaw.shift(); } else if(t.exitUnassigned){ (t._orphanLaps||(t._orphanLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind}); if(t._orphanLaps.length>400)t._orphanLaps.shift(); }}}
       }
       // duración de vuelta para el óvalo: media de vueltas LIMPIAS (ignora vueltas de boxes/anómalas)
       {const cl=r.laps.filter(x=>x>0);let dur=0;if(cl.length){const so=[...cl].sort((a,b)=>a-b),med=so[so.length>>1],good=cl.filter(x=>x<=med*1.3);dur=good.reduce((a,b)=>a+b,0)/good.length;}t.target=dur||(t.best<Infinity?t.best:0)||vRef;}
@@ -2109,7 +2151,7 @@
     });
     if(_resel!=null){const _yt=teams.find(t=>t.dorsal===_resel);if(_yt){teams.forEach(t=>t.you=false);_yt.you=true;}}
     // avisos reales → panel de avisos
-    feed.length=0;apex.coms.forEach((c,i)=>feed.push({kind:/pen/i.test(c.flag||'')?'timing':(/warn/i.test(c.flag||'')?'auto':'info'),d:+c.kart||0,text:c.text,t:now,id:9000+i,served:false}));
+    feed.length=0;apex.coms.forEach((c,i)=>feed.push({kind:/pen/i.test(c.flag||'')?'timing':(/warn/i.test(c.flag||'')?'auto':'info'),d:+c.kart||0,text:c.text,t:now,clk:(c.time||''),id:9000+i,served:false}));
     apexStatus(document.getElementById('apexstatus')?document.getElementById('apexstatus').textContent:'',(apexWS?'on':''));
     apexSave();}
   function apexDemo(){applyApex(APEX_DEMO);}
@@ -2127,7 +2169,24 @@
 
   document.getElementById('apexbtn').addEventListener('click',()=>{document.getElementById('apexmodal').style.display='flex';});
   { const au=document.getElementById('apexurl'); if(au && location.protocol!=='file:' && location.host){ au.value=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/feed'; } }
-  { const rb=document.getElementById('racesetbtn'); if(rb) rb.addEventListener('click',async()=>{ const url=(document.getElementById('raceurl').value||'').trim(); const msg=document.getElementById('racesetmsg'); if(!url){msg.textContent='Pega la URL de la carrera de Apex.';return;} msg.textContent='Fijando…'; try{ const r=await fetch('/api/relay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,origin:((document.getElementById('raceorigin')&&document.getElementById('raceorigin').value)||'').trim()})}); const j=await r.json(); msg.textContent=j&&j.ok?'✓ El servidor se está conectando a la carrera. Pulsa Conectar.':'Error al fijar la carrera.'; }catch(e){ msg.textContent='No hay servidor aquí (ábrelo desde la URL del servidor, no como archivo local).'; } }); }
+  { const rb=document.getElementById('racesetbtn'); if(rb) rb.addEventListener('click',async()=>{ const url=(document.getElementById('raceurl').value||'').trim(); const origin=((document.getElementById('raceorigin')&&document.getElementById('raceorigin').value)||'').trim(); const msg=document.getElementById('racesetmsg'); if(!url){msg.textContent='Pega la URL de la carrera de Apex.';return;} msg.textContent='Fijando…'; try{ const r=await fetch('/api/relay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,origin,session:MRP_SESSION})}); const j=await r.json(); if(j&&j.ok){ window.__mrpAutoConnected=true; msg.textContent='✓ Carrera vinculada · conectando…'; try{ const am=document.getElementById('apexmodal'); if(am) am.style.display='none'; }catch(_){}; try{ apexConnect(); }catch(_){} } else { msg.textContent='Error al fijar la carrera.'; } }catch(e){ msg.textContent='No hay servidor aquí (ábrelo desde la URL del servidor, no como archivo local).'; } }); }
+
+  // Autoconexión: si esta carrera ya tiene una URL guardada, rellenar y conectar solos (sin volver a pegar ni pulsar)
+  (async function mrpAutoRace(){
+    try{
+      if(location.protocol==='file:' || !location.host) return;
+      if(!MRP_SESSION || MRP_SESSION==='live') return;
+      const r=await fetch('/api/session?id='+encodeURIComponent(MRP_SESSION)); const j=await r.json(); const s=j&&j.session;
+      if(!s || !s.url) return;                                  // carrera sin URL guardada -> flujo manual normal (por si usas el reproductor)
+      window.__mrpAutoConnected=true;
+      const ru=document.getElementById('raceurl'), ro=document.getElementById('raceorigin');
+      if(ru) ru.value=s.url; if(ro) ro.value=s.origin||'';
+      try{ await fetch('/api/relay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:s.url,origin:s.origin||'',session:MRP_SESSION})}); }catch(_){}
+      const msg=document.getElementById('racesetmsg'); if(msg) msg.textContent='✓ Carrera vinculada · conectando…';
+      try{ const am=document.getElementById('apexmodal'); if(am) am.style.display='none'; }catch(_){}
+      try{ apexConnect(); }catch(_){}
+    }catch(_){}
+  })();
   document.getElementById('apexclose').addEventListener('click',()=>{document.getElementById('apexmodal').style.display='none';});
   document.getElementById('apexmodal').addEventListener('click',e=>{if(e.target.id==='apexmodal')e.currentTarget.style.display='none';});
   document.getElementById('apexconn').addEventListener('click',()=>{if(apexWS)apexDisconnect();else apexConnect();});
