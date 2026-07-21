@@ -195,6 +195,7 @@
   .boxwrap>#bx_bot .holdstrip,.boxwrap>#bx_bot .twaitwrap{min-height:0;height:var(--bot-h,290px);max-height:none;overflow-y:auto;overflow-x:hidden;box-sizing:border-box}
   .sortrsz{height:11px;cursor:ns-resize;border-radius:5px;margin-top:2px;background:linear-gradient(#232a34,#161b22);border:1px solid var(--line);opacity:.6;user-select:none;-webkit-user-select:none;touch-action:none;-webkit-user-drag:none}
   .sortrsz:hover{opacity:1;border-color:var(--acc)}
+  .boxwrap:not(.editing) .sortrsz,.boxwrap:not(.editing) .rsz{display:none}
 
   .boxbelow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;margin-top:10px}
   .boxbelow>#bx_top{flex:1 1 240px;min-width:0;display:flex;flex-direction:column}
@@ -217,7 +218,7 @@
   .brow.rowtgt{outline:2px dashed var(--cyan);outline-offset:4px;border-radius:8px;background:rgba(55,200,214,.07)}
   .twait.adt{cursor:grab;touch-action:none}
   .boxes.horiz .brow{flex-direction:column;flex:0 0 var(--bw,76px);min-width:var(--bw,76px);width:var(--bw,76px)}
-  .boxstage{position:relative;display:block;max-width:100%;vertical-align:top}
+  .boxstage{position:relative;display:block;max-width:100%;vertical-align:top;min-height:var(--sort-min-h,0px)}
   .rsz{position:absolute;z-index:5;touch-action:none;background:transparent}
   .rsz::after{content:'';position:absolute;background:var(--line);border-radius:3px}
   .rsz:hover::after,.rsz.act::after{background:var(--cyan)}
@@ -606,7 +607,7 @@
             <input class="miniinput" id="cf_rows" type="number" min="1" max="6" value="3" title="Nº de filas">
             <span style="color:var(--dim)">×</span>
             <input class="miniinput" id="cf_per" type="number" min="1" max="6" value="3" title="Karts por fila">
-            <label class="tog" style="margin-left:4px" title="Editar (mover/sustituir karts)">✎<input type="checkbox" id="editmode"></label>
+            <label class="tog" style="margin-left:4px" title="Editar (mover/sustituir karts)">✎<input type="checkbox" id="editmode"></label><span id="sortmarginwrap" style="display:inline-flex;align-items:center;gap:4px;margin-left:6px;opacity:.5" title="Hueco reservado bajo las filas de sorteo, para que no salte la cola al crecer una fila. Solo con Editar."><span style="font-size:11px;color:var(--dim)">Margen</span><input type="range" id="sortmargin" min="0" max="700" step="10" value="0" style="width:80px" disabled></span>
             <button class="ui" id="szundo" title="Deshacer el último movimiento del sorteo" style="margin-left:6px" disabled>↶</button><button class="ui" id="szredo" title="Rehacer el movimiento" disabled>↷</button>
             <button class="ui" id="holdpos" title="Posición de las entradas a boxes" style="display:none;margin-left:4px">Entradas ↑</button>
             <button class="ui" id="boxrot" title="Rotar todo el cuadro 180°: gira las filas y cambia por qué lado entran y salen los karts" style="margin-left:4px">⟲ Rotar</button>
@@ -683,7 +684,7 @@
     <div style="display:flex;justify-content:space-between;align-items:center"><b>🛰 Datos en vivo · Apex Timing</b><button class="ui" id="apexclose">✕</button></div>
     <div style="font-size:12px;color:var(--dim)">Alimenta este mismo gestor con la carrera real. Conecta al <b>relé local</b> (necesita <code>node apex-relay.js</code> en marcha) o pega un mensaje capturado.</div>
     <div style="display:flex;gap:7px;align-items:center"><input type="text" id="apexurl" value="ws://localhost:8080/feed" spellcheck="false" style="flex:1;background:#0a0e14;border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:7px 9px;font-family:var(--mono);font-size:11px"><button class="ui" id="apexconn">Conectar</button></div>
-    <div style="display:flex;gap:7px;align-items:center;margin-top:6px"><input type="text" id="raceurl" placeholder="URL de la carrera en Apex (para el servidor en la nube)" spellcheck="false" style="flex:1;background:#0a0e14;border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:7px 9px;font-family:var(--mono);font-size:11px"><button class="ui" id="racesetbtn">Fijar carrera</button></div>
+    <div style="display:flex;gap:7px;align-items:center;margin-top:6px"><input type="text" id="raceurl" placeholder="URL de la carrera en Apex (para el servidor en la nube)" spellcheck="false" style="flex:1;background:#0a0e14;border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:7px 9px;font-family:var(--mono);font-size:11px"><input type="text" id="raceorigin" placeholder="Origin (opcional, del F12)" spellcheck="false" title="Del F12: Network → WS → Headers → Origin. Déjalo vacío y el servidor prueba los de Apex." style="flex:0 0 150px;background:#0a0e14;border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:7px 9px;font-family:var(--mono);font-size:11px"><button class="ui" id="racesetbtn">Fijar carrera</button></div>
     <div id="racesetmsg" style="font-size:11px;color:var(--dim);min-height:14px"></div>
     <div style="display:flex;gap:8px;align-items:center"><span class="apexstat" id="apexstatus">desconectado</span></div>
     <div style="border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:7px">
@@ -801,7 +802,7 @@
   let reliableSet=new Set();
   let retiredSet=new Set();
   let boxW=86,boxH=60;
-  let rowsN=3,perRow=3,maxKid=0,selected=null,moveSel=null,PID=0,me=null,drvMinOn=true,kdrag=null,modalKey='',noRepeat=false,holdPos='above',nextShort=3600,nSectors=3,pitSeqN=0;
+  let rowsN=3,perRow=3,maxKid=0,selected=null,moveSel=null,PID=0,me=null,drvMinOn=true,kdrag=null,_resizing=false,_dragBusyT=0,modalKey='',noRepeat=false,holdPos='above',nextShort=3600,nSectors=3,pitSeqN=0;
   let hiddenCols=new Set();let _lastHeadSig='';
   function getDrvMin(){return drvMinOn?((+document.getElementById('cf_drvmin').value||0)*60):0;}
   const karts=[],teams=[],rows=[],allDrivers=[],pending=[],feed=[],holding=[];
@@ -813,7 +814,8 @@
   function mint(sc){const id=++maxKid;karts[id-1]={id,score:(sc==null?Math.round(rnd(3,98)):sc),samples:[],resid:null,pct:null,man:null,lock:false};return id;}
   function kpct(id){return karts[id-1]?karts[id-1].pct:null;}
   function isCleanLap(l){ return (l.gap==null||l.gap>CLEAN_AHEAD) && (l.gapB==null||l.gapB>CLEAN_BEHIND); }
-  function _noteFrom(laps){ if(!laps||!laps.length) return null; const ts=laps.map(l=>l.t).sort((a,b)=>a-b), med=ts[ts.length>>1]; const ok=laps.filter(l=>l.t<=med*1.3), N=Math.max(1,KART_AVG_N); let sel; if(PRIOCLEAN){ const clean=ok.filter(isCleanLap).map(l=>l.t).sort((a,b)=>a-b); sel=clean.slice(0,N); if(!sel.length){ const dirty=ok.filter(l=>!isCleanLap(l)).map(l=>l.t+towGain()).sort((a,b)=>a-b); sel=dirty.slice(0,N); } } else { const all=ok.map(l=>isCleanLap(l)?l.t:l.t+towGain()).sort((a,b)=>a-b); sel=all.slice(0,N); } if(!sel.length) return null; return sel.reduce((a,b)=>a+b,0)/sel.length; }
+  const GLITCH_GAP=2.0;
+  function _noteFrom(laps){ if(!laps||!laps.length) return null; const ts=laps.map(l=>l.t).sort((a,b)=>a-b), med=ts[ts.length>>1]; const ok=laps.filter(l=>l.t<=med*1.3), N=Math.max(1,KART_AVG_N); const _dg=a=>{ const m=a.length?a[a.length>>1]:0; while(a.length>=3 && a[0] < m - GLITCH_GAP) a.shift(); return a; }; let sel; if(PRIOCLEAN){ const clean=_dg(ok.filter(isCleanLap).map(l=>l.t).sort((a,b)=>a-b)); sel=clean.slice(0,N); if(!sel.length){ const dirty=_dg(ok.filter(l=>!isCleanLap(l)).map(l=>l.t+towGain()).sort((a,b)=>a-b)); sel=dirty.slice(0,N); } } else { const all=_dg(ok.map(l=>isCleanLap(l)?l.t:l.t+towGain()).sort((a,b)=>a-b)); sel=all.slice(0,N); } if(!sel.length) return null; return sel.reduce((a,b)=>a+b,0)/sel.length; }
   function towGain(){const el=document.getElementById('toprebufo');const v=el?parseFloat(el.value):TOW_MAX;return (isFinite(v)&&v>=0)?v:TOW_MAX;}
   function goodMargin(){const el=document.getElementById('topmargin');const v=el?parseFloat(el.value):0.1;return (isFinite(v)&&v>=0)?v:0.1;}
   function recommendedTow(){const useRel=reliableSet.size>0;const diffs=[];karts.forEach(k=>{if(!k||!k.rawLaps)return;const laps=useRel?k.rawLaps.filter(l=>reliableSet.has(l.team)):k.rawLaps;if(laps.length<4)return;const clean=laps.filter(l=>l.t>0&&(l.gap==null||l.gap>CLEAN_AHEAD)).map(l=>l.t).sort((a,b)=>a-b);const tow=laps.filter(l=>l.t>0&&l.gap!=null&&l.gap<=CLEAN_AHEAD).map(l=>l.t).sort((a,b)=>a-b);const n=Math.min(clean.length,tow.length,5);for(let i=0;i<n;i++){const dd=clean[i]-tow[i];if(dd>-0.5&&dd<3)diffs.push(dd);}});if(diffs.length<4)return null;return diffs.reduce((a,b)=>a+b,0)/diffs.length;}
@@ -918,17 +920,18 @@
   function szPush(cmd){ szUndo.push(cmd); if(szUndo.length>200)szUndo.shift(); szRedo.length=0; szBtns(); }
   function szDoUndo(){ if(!szUndo.length)return; const c=szUndo.pop(); try{c.revert();}catch(_){}  szRedo.push(c); szBtns(); render(); }
   function szDoRedo(){ if(!szRedo.length)return; const c=szRedo.pop(); try{c.apply();}catch(_){}  szUndo.push(c); szBtns(); render(); }
+  function szPluck(id){ for(let r=0;r<rows.length;r++){ let ix; while((ix=rows[r].indexOf(id))>=0) rows[r].splice(ix,1); } for(let i=holding.length-1;i>=0;i--){ if(holding[i].kart===id) holding.splice(i,1); } }
   function mkPlace(t,entry,kid,row,beforePlaced){ const dor=entry.dorsal, prevDrop=(karts[kid-1]&&karts[kid-1].drop)?JSON.parse(JSON.stringify(karts[kid-1].drop)):null; return {
-    revert(){ for(let r=0;r<rows.length;r++){const ix=rows[r].indexOf(kid);if(ix>=0){rows[r].splice(ix,1);break;}} if(karts[kid-1]){ if(prevDrop)karts[kid-1].drop=prevDrop; else delete karts[kid-1].drop; } if(t)t.placed=beforePlaced; holdInsert(entry); },
-    apply(){ const i=holding.indexOf(entry); if(i>=0)holding.splice(i,1); (rows[row]||(rows[row]=[])).push(kid); if(karts[kid-1])karts[kid-1].drop={dorsal:dor,name:entry.name}; if(t)t.placed=true; }
+    revert(){ szPluck(kid); if(karts[kid-1]){ if(prevDrop)karts[kid-1].drop=prevDrop; else delete karts[kid-1].drop; } if(t)t.placed=beforePlaced; holdInsert(entry); },
+    apply(){ szPluck(kid); (rows[row]||(rows[row]=[])).push(kid); if(karts[kid-1])karts[kid-1].drop={dorsal:dor,name:entry.name}; if(t)t.placed=true; }
   }; }
   function mkTake(t,takenId,row,idx,heldEntry,heldRow,before,after){ return {
-    revert(){ (rows[row]||(rows[row]=[])).splice(idx,0,takenId); if(heldEntry){ const hr=rows[heldRow]; if(hr){const ix=hr.lastIndexOf(heldEntry.kart);if(ix>=0)hr.splice(ix,1);} if(karts[heldEntry.kart-1])delete karts[heldEntry.kart-1].drop; holdInsert(heldEntry); } szTeamApply(t,before); },
-    apply(){ let ix=rows[row]?rows[row].indexOf(takenId):-1; if(ix>=0)rows[row].splice(ix,1); if(heldEntry){ const i=holding.indexOf(heldEntry); if(i>=0)holding.splice(i,1); (rows[heldRow]||(rows[heldRow]=[])).push(heldEntry.kart); if(karts[heldEntry.kart-1])karts[heldEntry.kart-1].drop={dorsal:heldEntry.dorsal,name:heldEntry.name}; } szTeamApply(t,after); }
+    revert(){ szPluck(takenId); (rows[row]||(rows[row]=[])).splice(idx,0,takenId); if(heldEntry){ szPluck(heldEntry.kart); if(karts[heldEntry.kart-1])delete karts[heldEntry.kart-1].drop; holdInsert(heldEntry); } szTeamApply(t,before); },
+    apply(){ szPluck(takenId); if(heldEntry){ szPluck(heldEntry.kart); (rows[heldRow]||(rows[heldRow]=[])).push(heldEntry.kart); if(karts[heldEntry.kart-1])karts[heldEntry.kart-1].drop={dorsal:heldEntry.dorsal,name:heldEntry.name}; } szTeamApply(t,after); }
   }; }
   function swap(t,r){r=clamp(r|0,0,rowsN-1);if(!rows[r]||!rows[r].length){r=rows.findIndex(x=>x&&x.length);if(r<0)return;}r=nrRow(t,r);if(!rows[r]||!rows[r].length){r=rows.findIndex(x=>x&&x.length);if(r<0)return;}const inId=rows[r].shift();if(karts[t.kart-1])karts[t.kart-1].drop={dorsal:t.dorsal,name:t.name};rows[r].push(t.kart);pushUsed(t,t.kart);t.kart=inId;assignFlush(t,inId);pushUsed(t,inId);t.stops++;t.assigned=true;if(noRepeat||Math.random()<0.5)t.di=(t.di+1)%t.drivers.length;}
   function assign(d,r){const t=teams.find(x=>x.dorsal===d);if(!t||t.assigned)return;swap(t,r);const i=pending.indexOf(d);if(i>=0)pending.splice(i,1);}
-  function apexPitIn(t){ if(!t._pitHeld && mode!=='auto' && t.kart){ holding.push({kart:t.kart,dorsal:t.dorsal,name:t.name,pitAt:now,seq:++_pitCounter}); t.waitKart=true; t.placed=false; t.assigned=false; t.kart=0; t.exitUnassigned=false; } t._pitHeld=true; }
+  function apexPitIn(t){ if(!t._pitHeld){ t._pitInLaps=t.laps; if(mode!=='auto' && t.kart){ holding.push({kart:t.kart,dorsal:t.dorsal,name:t.name,pitAt:now,seq:++_pitCounter}); t.waitKart=true; t.placed=false; t.assigned=false; t.kart=0; t.exitUnassigned=false; } } t._pitHeld=true; }
 
   // ---- Estrategia automática de los equipos rivales ----
   // Nivel del equipo = media de notas de sus pilotos. Rivales directos = mismo escalón.
@@ -1190,7 +1193,7 @@
   const COLS={
     pos:{label:'Pos',cls:'pos',get:(t,c)=>c.i+1},
     num:{label:'#',cls:'l',get:(t,c)=>`${c.fl}<span class="dorsal">${t.dorsal}</span>`},
-    team:{label:'Equipo',cls:'l',get:(t)=>`<span class="tname" data-team="${t.dorsal}">${t.name}</span><span class="ontrack">${t.retired?'<span style="color:var(--dim)">retirado</span>':(t.waitKart?`<span style="color:var(--amber)">esperando kart · ${mmss(now-t.pitStart)}</span>`:t.inPit?`<span style="color:var(--cyan)">boxes</span>`:drv(t).name)}</span>`},
+    team:{label:'Equipo',cls:'l',get:(t)=>`<span class="tname" data-team="${t.dorsal}">${t.name}</span><span class="ontrack">${t.retired?'<span style="color:var(--dim)">retirado</span>':(t.waitKart&&t.inPit?`<span style="color:var(--amber)">esperando kart · ${mmss(now-t.pitStart)}</span>`:t.inPit?`<span style="color:var(--cyan)">boxes</span>`:drv(t).name)}</span>`},
     driver:{label:'Fiable',cls:'l colfiable',get:(t,c)=>c.dchip||'<span class="muted">—</span>'},
     turno:{label:'Turno',cls:'',get:(t,c)=>c.turno},
     gap:{label:'Gap',cls:'',get:(t,c)=>c.gapcell},
@@ -1232,7 +1235,7 @@
       document.querySelectorAll('.dragth.over').forEach(x=>x.classList.remove('over'));renderHead();render();});
   })();
   let recordBest=Infinity,lastMin=Infinity,lastMax=0,avgMin=Infinity,avgMax=0,lastRedAnchor=0;
-  function render(){
+  function render(){ if((kdrag||_resizing)&&Date.now()-_dragBusyT<8000)return;
     {const tb=document.getElementById('topbase');if(tb&&document.activeElement!==tb)tb.value=BASE;}
     {const _tr=document.getElementById('towrec');if(_tr){const _rt=recommendedTow();_tr.textContent=_rt!=null?('rec '+_rt.toFixed(2)+'s'):'';_tr.title=_rt!=null?'Recomendado por los datos: mismo kart, vueltas limpias vs con rebufo':'Aún sin datos suficientes';}}
     {const _rp=document.getElementById('topracepace');if(_rp){const _pv=racePace();_rp.textContent=_pv!=null?_pv.toFixed(3):'—';}}
@@ -1326,8 +1329,8 @@
         const waiting=teams.filter(t=>(t.inPit&&(t.placed||!t.waitKart))||(t.exitUnassigned&&t.waitKart&&t.placed)||(t._filledAt&&(Date.now()-t._filledAt<2500)&&!t.inPit)).sort((a,b)=>(a.pitSeq||0)-(b.pitSeq||0));
         const tw=waiting.map(t=>{const el=pitClock(t);if(t.waitKart)
           return `<div class="twait${t.exitUnassigned?' orange':''}" data-twait="${t.dorsal}" title="${mode==='autodirect'?'Cogerá kart al soltar uno en una fila':'Arrástrale un kart de una fila'}"><span class="kd">${t.dorsal}</span><span class="tn">${cutName(t.name)}</span><span class="twt">${el}</span></div>`;
-          const np=kpct(t.kart),nc=np==null?'#7c8794':scoreColor(np),rev=!!t.takeUndo,_fade=t._filledAt&&(Date.now()-t._filledAt<2500)&&!t.inPit,_fop=_fade?Math.max(0,1-(Date.now()-t._filledAt)/2500):1;
-          return `<div class="twait done${rev?' rev':''}${_fade?' filling':''}"${_fade?` style="opacity:${_fop.toFixed(2)}"`:''}${rev?` data-twaitback="${t.dorsal}" title="Arrástralo a una fila para deshacer"`:''}><span class="kd">${t.dorsal}</span><span class="tn">${cutName(t.name)}</span><span class="twq" style="color:${nc}">${np==null?'—':np.toFixed(0)}</span><span class="twt pitbig" title="Cronómetro de la parada en boxes">⏱ ${el}</span></div>`;}).join('');
+          const np=kartNote(t.kart),nc=np==null?'#7c8794':lapColor(clamp((np-(bestKN!=null?bestKN:np))/knInt(),0,1)),rev=!!t.takeUndo,_fade=t._filledAt&&(Date.now()-t._filledAt<2500)&&!t.inPit,_fop=_fade?Math.max(0,1-(Date.now()-t._filledAt)/2500):1;
+          return `<div class="twait done${rev?' rev':''}${_fade?' filling':''}"${_fade?` style="opacity:${_fop.toFixed(2)}"`:''}${rev?` data-twaitback="${t.dorsal}" title="Arrástralo a una fila para deshacer"`:''}><span class="kd">${t.dorsal}</span><span class="tn">${cutName(t.name)}</span><span class="twq" style="color:${nc}">${np==null?'—':fmtNote(np)}</span><span class="twt pitbig" title="Cronómetro de la parada en boxes">⏱ ${el}</span></div>`;}).join('');
         tlist=`<div class="hlbl amber">Fila de salida de boxes${mode==='autodirect'?' — el 1º coge el kart que sueltes':''}</div><div class="twaitwrap ${waiting.length?'':'empty'}">${waiting.length?tw:'<span class="hhint">Aparecerán aquí al parar y se van al salir de boxes.</span>'}</div>`;
       }else{
         const onTrack=teams.filter(t=>!t.inPit&&!t.retired);
@@ -1338,7 +1341,7 @@
         const tot=goodBox+badBox,pB=tot>0?clamp(Math.round(100*goodBox/tot),0,100):50;
         autohdr=`<div class="autoest"><div class="aerow"><span style="color:#37d67a">≈ ${pB}% buenos</span><span style="color:#ff5d5d">≈ ${100-pB}% malos</span></div><div class="aebar"><i style="width:${pB}%;background:#22a866"></i><i style="width:${100-pB}%;background:#c43a34"></i></div><div class="aenote">En pista: ${goodTrack} buenos · ${badTrack} flojos (máx visto ${apex._maxGood||0}/${apex._maxBad||0}) · en boxes ≈${goodBox} buenos, ${badBox} flojos</div></div>`;
       }
-      const _bxw=document.querySelector('.boxwrap');if(_bxw)_bxw.classList.toggle('rotw',boxRot);
+      const _bxw=document.querySelector('.boxwrap');if(_bxw){_bxw.classList.toggle('rotw',boxRot);_bxw.classList.toggle('editing',editMode);}const _sm=document.getElementById('sortmargin');if(_sm)_sm.disabled=!editMode;const _smw=document.getElementById('sortmarginwrap');if(_smw)_smw.style.opacity=editMode?'1':'.5';
       const _bb=document.getElementById('boxbelow');if(_bb)_bb.classList.toggle('est',mode==='auto');
       if(mode==='auto'){document.getElementById('bx_top_c').innerHTML=autohdr;document.getElementById('bx_bot_c').innerHTML='';}
       else{document.getElementById('bx_top_c').innerHTML=boxRot?strip:tlist;document.getElementById('bx_bot_c').innerHTML=boxRot?tlist:strip;}
@@ -1663,12 +1666,13 @@
   const boxesEl=document.getElementById('boxes');
   const boxwrapEl=boxesEl.closest('.boxwrap');
   function resizeWire(id,axis){const h=document.getElementById(id);if(!h)return;
-    h.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();h.classList.add('act');
+    h.addEventListener('pointerdown',e=>{if(!editMode)return;e.preventDefault();e.stopPropagation();h.classList.add('act');_resizing=true;_dragBusyT=Date.now();
       const sx=e.clientX,sy=e.clientY,sw=boxW,sh=boxH;
-      const mv=ev=>{if(axis==='x'){boxW=clamp(Math.round(sw+(ev.clientX-sx)),52,240);boxesEl.style.setProperty('--bw',boxW+'px');}else{boxH=clamp(Math.round(sh+(ev.clientY-sy)),38,170);boxesEl.style.setProperty('--bh',boxH+'px');}};
-      const up=()=>{h.classList.remove('act');document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);saveLayout();};
+      const mv=ev=>{_dragBusyT=Date.now();if(axis==='x'){boxW=clamp(Math.round(sw+(ev.clientX-sx)),52,240);boxesEl.style.setProperty('--bw',boxW+'px');}else{boxH=clamp(Math.round(sh+(ev.clientY-sy)),38,170);boxesEl.style.setProperty('--bh',boxH+'px');}};
+      const up=()=>{_resizing=false;h.classList.remove('act');document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);saveLayout();render();};
       document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);});}
   resizeWire('rszx','x');resizeWire('rszy','y');
+  {const _sm=document.getElementById('sortmargin');if(_sm)_sm.addEventListener('input',()=>{const bw=document.querySelector('.boxwrap');if(bw)bw.style.setProperty('--sort-min-h',_sm.value+'px');try{window.storage.set('sort_min_h',_sm.value+'px',false);}catch(_){}});}
   // ---- Editar diseño: mover y redimensionar cada panel + export/import ----
   const DEF_CFG={"freeform":true,"panels":{"rk1":{"x":-29,"y":0,"w":"151px","h":"966px"},"rk2":{"x":125,"y":0,"w":"1296px","h":"968px"},"rk3":{"x":124,"y":1232,"w":"1294px","h":"171px"},"rk4":{"x":123,"y":1413,"w":"1295px","h":"351px"},"rk5":{"x":1426,"y":-99,"w":"339px","h":"1354px"},"rk6":{"x":1062,"y":974,"w":"355px","h":"248px"},"rk7":{"x":126,"y":973,"w":"931px","h":"249px"},"rk8":{"x":-139,"y":1050,"w":"250px","h":"471px"},"rk0":{"w":"1415px","h":"84px"}},"boxW":86,"boxH":60,"hidden":[],"order":["pos","num","team","driver","turno","gap","int","vpos","s1","s2","s3","last","avg","best","kart","laps","pits"]};
   let ledit=false,freeform=false,cfg=JSON.parse(JSON.stringify(DEF_CFG)),_panelT=null;
@@ -1759,7 +1763,7 @@
     prev.forEach(p=>{const n=p.c.getBoundingClientRect();const dx=p.r.left-n.left,dy=p.r.top-n.top;if(Math.abs(dx)>0.5||Math.abs(dy)>0.5){p.c.style.transition='none';p.c.style.transform='translate('+dx+'px,'+dy+'px)';requestAnimationFrame(()=>{p.c.style.transition='transform .2s cubic-bezier(.2,.85,.25,1)';p.c.style.transform='';});}});}
   function cleanupDrag(){if(kdrag){if(kdrag.ghost)kdrag.ghost.remove();if(kdrag.gap&&kdrag.gap.parentNode)kdrag.gap.parentNode.removeChild(kdrag.gap);}kdrag=null;dragSettle=0;clearMarks();render();}
   const cutName=s=>{s=(s==null?'':s).toString();return s.length>10?s.slice(0,10):s;};
-  function ghostBox(note,dorsal,name,col){const who=dorsal!=null?`<div class="gw"><span class="gd">${dorsal}</span><span>${cutName(name)}</span></div>`:`<div class="gw"><span class="gd" style="background:#1a2029;color:#5d6b7e">—</span><span style="color:#5d6b7e">reserva</span></div>`;return who+`<div class="gq" style="color:${col}">${note==null?'··':note.toFixed(0)}</div>`;}
+  function ghostBox(note,dorsal,name,col){const who=dorsal!=null?`<div class="gw"><span class="gd">${dorsal}</span><span>${cutName(name)}</span></div>`:`<div class="gw"><span class="gd" style="background:#1a2029;color:#5d6b7e">—</span><span style="color:#5d6b7e">reserva</span></div>`;return who+`<div class="gq" style="color:${col}">${note==null?'··':fmtNote(note)}</div>`;}
   function startGhost(e,html,col){const g=document.createElement('div');g.className='kghost';g.innerHTML=html;if(col)g.style.borderColor=col;document.body.appendChild(g);kdrag.ghost=g;kdrag.touch=(e.pointerType==='touch');g.style.left=e.clientX+'px';g.style.top=(e.clientY+(kdrag.touch?-52:0))+'px';e.preventDefault();try{boxwrapEl.setPointerCapture(e.pointerId);}catch(_){}}
   function twaitUnder(e){const el=document.elementFromPoint(e.clientX,e.clientY);const tw=el?el.closest('.twait[data-twait]'):null;if(!tw)return null;const t=teams.find(x=>x.dorsal===+tw.dataset.twait);return(t&&t.waitKart&&t.placed)?tw:null;}
   function flyTake(r,dorsal){
@@ -1775,14 +1779,15 @@
   }
   function settleAt(tr,id){const idx=rows[tr].indexOf(id);if(idx<0){dragSettle=0;render();return;}dragSettle=0;render();dragSettle=performance.now()+340;requestAnimationFrame(()=>{const el=boxesEl.querySelector('.kart[data-pos="'+tr+','+idx+'"]');if(el){el.classList.remove('settle');void el.offsetWidth;el.classList.add('settle');}});}
   boxwrapEl.addEventListener('pointerdown',e=>{
+    _dragBusyT=Date.now();
     const sb=e.target.closest('[data-sub]');
     if(sb){const[r,i]=sb.dataset.sub.split(',').map(Number);if(rows[r])rows[r].splice(i,1);render();return;}
     const ab=e.target.closest('[data-add]');
     if(ab){const r=+ab.dataset.add;rows[r]=rows[r]||[];rows[r].push(mint());render();return;}
     const tb=e.target.closest('.twait.done[data-twaitback]');
-    if(tb&&mode!=='auto'){const t=teams.find(x=>x.dorsal===+tb.dataset.twaitback);if(t&&t.takeUndo){kdrag={kind:'untake',dorsal:t.dorsal,id:t.kart,gap:makeGap(),gpos:null};const note=kpct(t.kart),col=note==null?'#7c8794':scoreColor(note),w=karts[t.kart-1]&&karts[t.kart-1].drop;sizeGap();startGhost(e,ghostBox(note,w?w.dorsal:null,w?w.name:null,col),col);}return;}
+    if(tb&&mode!=='auto'){const t=teams.find(x=>x.dorsal===+tb.dataset.twaitback);if(t&&t.takeUndo){kdrag={kind:'untake',dorsal:t.dorsal,id:t.kart,gap:makeGap(),gpos:null};const note=kartNote(t.kart),col=note==null?'#7c8794':'#8ea2b5',w=karts[t.kart-1]&&karts[t.kart-1].drop;sizeGap();startGhost(e,ghostBox(note,w?w.dorsal:null,w?w.name:null,col),col);}return;}
     const pc=e.target.closest('.pchip[data-hold]');
-    if(pc&&mode!=='auto'){const hi=+pc.dataset.hold,en=holding[hi];kdrag={kind:'place',entry:en,id:en.kart,gap:makeGap(),gpos:null};const note=kpct(en.kart),col=note==null?'#7c8794':scoreColor(note);sizeGap();startGhost(e,ghostBox(note,en.dorsal,en.name,col),col);return;}
+    if(pc&&mode!=='auto'){const hi=+pc.dataset.hold,en=holding[hi];kdrag={kind:'place',entry:en,id:en.kart,gap:makeGap(),gpos:null};const note=kartNote(en.kart),col=note==null?'#7c8794':'#8ea2b5';sizeGap();startGhost(e,ghostBox(note,en.dorsal,en.name,col),col);return;}
     const at=e.target.closest('[data-autoteam]');
     if(at&&mode==='autodirect'){const t=teams.find(x=>x.dorsal===+at.dataset.autoteam);if(t&&t.waitKart){kdrag={kind:'autotake',dorsal:t.dorsal,targetRow:null};startGhost(e,`<div class="gw"><span class="gd">${t.dorsal}</span><span>${t.name}</span></div>`,'#37c8d6');}return;}
     const k=e.target.closest('.kart');if(!k||!k.dataset.pos)return;
@@ -1790,12 +1795,12 @@
     const[row,idx]=k.dataset.pos.split(',').map(Number);const id=rows[row][idx];
     if(!editMode&&idx!==0)return;
     kdrag=editMode?{kind:'move',row,idx,id,gap:makeGap()}:{kind:'take',row,idx,id,gap:makeGap()};
-    const note=kpct(id),col=note==null?'#7c8794':scoreColor(note),w=karts[id-1]&&karts[id-1].drop;
+    const note=kartNote(id),col=note==null?'#7c8794':'#8ea2b5',w=karts[id-1]&&karts[id-1].drop;
     startGhost(e,ghostBox(note,w?w.dorsal:null,w?w.name:null,col),col);
     sizeGap(k);k.parentNode.insertBefore(kdrag.gap,k);k.classList.add('dragsrc');kdrag.gpos={row,index:idx};
   });
   boxwrapEl.addEventListener('pointermove',e=>{
-    if(!kdrag)return;kdrag.ghost.style.left=e.clientX+'px';kdrag.ghost.style.top=(e.clientY+(kdrag.touch?-52:0))+'px';
+    if(!kdrag)return;_dragBusyT=Date.now();kdrag.ghost.style.left=e.clientX+'px';kdrag.ghost.style.top=(e.clientY+(kdrag.touch?-52:0))+'px';
     if(kdrag.kind==='autotake'){document.querySelectorAll('.brow.rowtgt').forEach(x=>x.classList.remove('rowtgt'));const dp=dropPos(e);if(dp){const br=boxesEl.querySelectorAll('.brow')[dp.row];if(br){br.classList.add('rowtgt');kdrag.targetRow=dp.row;}}else kdrag.targetRow=null;return;}
     if(kdrag.kind==='take'){document.querySelectorAll('.twait.rowtgt').forEach(x=>x.classList.remove('rowtgt'));
       const tw=twaitUnder(e);if(tw){tw.classList.add('rowtgt');kdrag.overTeam=tw;if(kdrag.gpos!==null){gapTo(null);kdrag.gpos=null;}return;}kdrag.overTeam=null;}
@@ -1808,7 +1813,7 @@
     if(k.kind==='autotake'){document.querySelectorAll('.brow.rowtgt').forEach(x=>x.classList.remove('rowtgt'));if(k.targetRow!=null){const t=teams.find(x=>x.dorsal===k.dorsal);if(t&&t.waitKart&&rows[k.targetRow]&&rows[k.targetRow].length){const _b=szTeamBefore(t);flyTake(k.targetRow,t.dorsal);autoTake(t,k.targetRow);const uu=t.takeUndo||{};szPush(mkTake(t,t.kart,uu.srcRow!=null?uu.srcRow:k.targetRow,0,uu.held||null,uu.heldRow,_b,szTeamBefore(t)));}}render();return;}
     if(k.kind==='take'){
       if(k.overTeam){const t=teams.find(x=>x.dorsal===+k.overTeam.dataset.twait);if(t&&t.waitKart){for(let r=0;r<rows.length;r++){const ix=rows[r].indexOf(k.id);if(ix>=0){const _b=szTeamBefore(t);manualTake(t,r,ix);const _a=szTeamBefore(t);szPush(mkTake(t,t.kart,r,ix,(t.takeUndo&&t.takeUndo.held)||null,(t.takeUndo&&t.takeUndo.heldRow),_b,_a));break;}}}}
-      else if(k.gpos){for(let r=0;r<rows.length;r++){const ix=rows[r].indexOf(k.id);if(ix>=0){rows[r].splice(ix,1);break;}}rows[k.gpos.row].splice(k.gpos.index,0,k.id);done={tr:k.gpos.row,id:k.id};}
+      else if(k.gpos){szPluck(k.id);if(!teams.some(t=>t.kart===k.id)){(rows[k.gpos.row]||(rows[k.gpos.row]=[])).splice(k.gpos.index,0,k.id);done={tr:k.gpos.row,id:k.id};}}
     }else if(k.kind==='place'){
       if(k.gpos){const _plBefore=(function(){const _t=teams.find(x=>x.dorsal===k.entry.dorsal);return _t?_t.placed:false;})();if(!editMode)k.gpos.index=rows[k.gpos.row].length;rows[k.gpos.row].splice(k.gpos.index,0,k.id);if(karts[k.id-1])karts[k.id-1].drop={dorsal:k.entry.dorsal,name:k.entry.name};const tm=teams.find(x=>x.dorsal===k.entry.dorsal);if(tm)tm.placed=true;const i=holding.indexOf(k.entry);if(i>=0)holding.splice(i,1);if(mode!=='autodirect'&&tm)szPush(mkPlace(tm,k.entry,k.id,k.gpos.row,_plBefore));
         if(mode==='autodirect'&&tm&&tm.waitKart){const R0=k.gpos.row;let R=nrRow(tm,R0);if(!rows[R]||!rows[R].length)R=R0;if(rows[R]&&rows[R].length){const _tkB=szTeamBefore(tm);const inId=rows[R].shift();const prevDi=tm.di;pushUsed(tm,tm.kart);tm.kart=inId;assignFlush(tm,inId);pushUsed(tm,inId);tm.waitKart=false;tm.placed=true;tm.releaseAt=Math.max(tm.pitStart+MIN_PIT,now+5);tm.assigned=true;tm.stops++;if(noRepeat||Math.random()<0.5)tm.di=(tm.di+1)%tm.drivers.length;tm.takeUndo={di:prevDi,held:null,heldRow:R};szPush(szCombo([mkPlace(tm,k.entry,k.id,k.gpos.row,_plBefore),mkTake(tm,inId,R,0,null,null,_tkB,szTeamBefore(tm))]));}}
@@ -1816,7 +1821,7 @@
     }else if(k.kind==='untake'){
       if(k.gpos){const t=teams.find(x=>x.dorsal===k.dorsal);if(t&&t.takeUndo){untake(t,k.gpos.row,k.gpos.index);done={tr:k.gpos.row,id:k.id};}}
     }else{
-      if(k.gpos){for(let r=0;r<rows.length;r++){const ix=rows[r].indexOf(k.id);if(ix>=0){rows[r].splice(ix,1);break;}}rows[k.gpos.row].splice(k.gpos.index,0,k.id);done={tr:k.gpos.row,id:k.id};}
+      if(k.gpos){szPluck(k.id);if(!teams.some(t=>t.kart===k.id)){(rows[k.gpos.row]||(rows[k.gpos.row]=[])).splice(k.gpos.index,0,k.id);done={tr:k.gpos.row,id:k.id};}}
     }
     if(done)settleAt(done.tr,done.id);else render();
   });
@@ -1846,9 +1851,9 @@
   chartRef=me;buildTeamPick();buildRefSelect();
   renderHead();
   planner();render();
-  function applySortHeights(){ try{ const bw=document.querySelector('.boxwrap'); if(!bw)return; ['top','bot'].forEach(w=>{ const v=window.__mrpMem&&window.__mrpMem['sort_'+w+'_h']; if(v)bw.style.setProperty('--'+w+'-h',v); }); }catch(_){} }
+  function applySortHeights(){ try{ const bw=document.querySelector('.boxwrap'); if(!bw)return; ['top','bot'].forEach(w=>{ const v=window.__mrpMem&&window.__mrpMem['sort_'+w+'_h']; if(v)bw.style.setProperty('--'+w+'-h',v); }); const _mv=window.__mrpMem&&window.__mrpMem['sort_min_h']; if(_mv){ bw.style.setProperty('--sort-min-h',_mv); const _sm=document.getElementById('sortmargin'); if(_sm)_sm.value=parseInt(_mv)||0; } }catch(_){} }
   document.addEventListener('dragstart',e=>{ if(e.target&&e.target.closest&&e.target.closest('.sortrsz'))e.preventDefault(); });
-  document.addEventListener('pointerdown',e=>{ const rz=e.target.closest('.sortrsz'); if(!rz)return; e.preventDefault(); try{rz.setPointerCapture(e.pointerId);}catch(_){} const which=rz.dataset.rsz, vn='--'+which+'-h', bw=document.querySelector('.boxwrap'); if(!bw)return; const sy=e.clientY; let cur=parseInt(bw.style.getPropertyValue(vn))||parseInt(getComputedStyle(bw).getPropertyValue(vn))||290; const mv=ev=>{ const h=Math.max(80,Math.min(800,cur+(ev.clientY-sy))); bw.style.setProperty(vn,h+'px'); }; const up=()=>{ document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); try{ window.storage.set('sort_'+which+'_h', bw.style.getPropertyValue(vn), false); }catch(_){} }; document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up); });
+  document.addEventListener('pointerdown',e=>{ const rz=e.target.closest('.sortrsz'); if(!rz)return; if(!editMode)return; e.preventDefault(); const which=rz.dataset.rsz, vn='--'+which+'-h', bw=document.querySelector('.boxwrap'); if(!bw)return; _resizing=true;_dragBusyT=Date.now(); try{bw.setPointerCapture(e.pointerId);}catch(_){} const sy=e.clientY; let cur=parseInt(bw.style.getPropertyValue(vn))||parseInt(getComputedStyle(bw).getPropertyValue(vn))||290; const mv=ev=>{ _dragBusyT=Date.now(); const h=Math.max(80,Math.min(800,cur+(ev.clientY-sy))); bw.style.setProperty(vn,h+'px'); }; const up=()=>{ _resizing=false; document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); try{ window.storage.set('sort_'+which+'_h', bw.style.getPropertyValue(vn), false); }catch(_){} render(); }; document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up); });
   applySortHeights();
 
   // ----- menú de inicio / circuitos -----
@@ -1981,7 +1986,7 @@
   // servido desde el servidor: entrar en Real y conectar solos (abrir enlace = carrera al momento, como Apex)
   if(location.protocol!=='file:'){
     setTimeout(()=>{ const mm=document.getElementById('modemenu'); const mr=document.getElementById('modeReal'); if(mm&&mr&&getComputedStyle(mm).display!=='none') mr.click(); }, 250);
-    { const _mr=document.getElementById('modeReal'); if(_mr) _mr.addEventListener('click',()=>{ setTimeout(()=>{ try{ apexConnect(); const am=document.getElementById('apexmodal'); if(am) am.style.display='none'; }catch(e){} }, 500); }); }
+    /* auto-conexion DESACTIVADA: se entra en Modo Real y se muestra el cuadro de la URL, pero el usuario pega el enlace y pulsa Conectar manualmente (como una carrera real) */
   }
   loadCircuits().then(loadLayout).then(loadDriverDB).then(loadAlgo).catch(()=>{}).then(()=>{try{setSectorCols(nSectors);recompute();renderHome();}catch(_){}$('modeReal').click();});
 
@@ -2068,12 +2073,12 @@
         else if(pit>t._lastStops){ if(t.history){t.history.push({type:'pit'});if(t.history.length>80)t.history.shift();} if(t.you)say('Parada en boxes registrada'); if(!staAvail&&!otrAvail){ t.pitStart=now; t._pitStartLap=t.laps; } t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; apexPitIn(t); }
         t._lastStops=pit; t.stops=pit; }
       if(staAvail){                                                  // BOXES por columna de ESTADO: 'si' = en boxes (parada real), 'so'/otro = fuera
-        const nowIn=(r.staCls==='si');
+        const nowIn=(r.staCls==='si') && !(t._pitInLaps!=null && t.laps>t._pitInLaps+1);
         if(nowIn && !t.inPit){ recordTurn(t); t.pitStart=now; apexPitIn(t); }                        // entra a boxes: registra la nota del turno que acaba
         else if(!nowIn && t.inPit){ if(t.waitKart)t.exitUnassigned=true; t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; t._pitHeld=false; }   // sale de boxes -> nuevo turno
         t.inPit=nowIn;
       } else if(otrAvail && r._wasTo){                               // fallback: columna 'In pista' (feeds sin estado si/so)
-        const nowIn=(r.otrCls==='in' && /^\d+:\d\d/.test((r.otrVal||'').trim()));
+        const nowIn=(r.otrCls==='in' && /^\d+:\d\d/.test((r.otrVal||'').trim())) && !(t._pitInLaps!=null && t.laps>t._pitInLaps+1);
         if(nowIn && !t.inPit){ t.pitStart=now; apexPitIn(t); }
         else if(!nowIn && t.inPit){ if(t.waitKart)t.exitUnassigned=true; t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; t._pitHeld=false; }
         t.inPit=nowIn;
@@ -2122,7 +2127,7 @@
 
   document.getElementById('apexbtn').addEventListener('click',()=>{document.getElementById('apexmodal').style.display='flex';});
   { const au=document.getElementById('apexurl'); if(au && location.protocol!=='file:' && location.host){ au.value=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/feed'; } }
-  { const rb=document.getElementById('racesetbtn'); if(rb) rb.addEventListener('click',async()=>{ const url=(document.getElementById('raceurl').value||'').trim(); const msg=document.getElementById('racesetmsg'); if(!url){msg.textContent='Pega la URL de la carrera de Apex.';return;} msg.textContent='Fijando…'; try{ const r=await fetch('/api/relay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})}); const j=await r.json(); msg.textContent=j&&j.ok?'✓ El servidor se está conectando a la carrera. Pulsa Conectar.':'Error al fijar la carrera.'; }catch(e){ msg.textContent='No hay servidor aquí (ábrelo desde la URL del servidor, no como archivo local).'; } }); }
+  { const rb=document.getElementById('racesetbtn'); if(rb) rb.addEventListener('click',async()=>{ const url=(document.getElementById('raceurl').value||'').trim(); const msg=document.getElementById('racesetmsg'); if(!url){msg.textContent='Pega la URL de la carrera de Apex.';return;} msg.textContent='Fijando…'; try{ const r=await fetch('/api/relay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,origin:((document.getElementById('raceorigin')&&document.getElementById('raceorigin').value)||'').trim()})}); const j=await r.json(); msg.textContent=j&&j.ok?'✓ El servidor se está conectando a la carrera. Pulsa Conectar.':'Error al fijar la carrera.'; }catch(e){ msg.textContent='No hay servidor aquí (ábrelo desde la URL del servidor, no como archivo local).'; } }); }
   document.getElementById('apexclose').addEventListener('click',()=>{document.getElementById('apexmodal').style.display='none';});
   document.getElementById('apexmodal').addEventListener('click',e=>{if(e.target.id==='apexmodal')e.currentTarget.style.display='none';});
   document.getElementById('apexconn').addEventListener('click',()=>{if(apexWS)apexDisconnect();else apexConnect();});

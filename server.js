@@ -106,7 +106,7 @@ const server = http.createServer(async (req,res)=>{
   }
   if(u==='/api/health'){ return sendJson(res,{ok:true,sessions:sessions.length,tracks:tracks.length}); }
   if(u.split('?')[0]==='/api/relay'){
-    if(req.method==='POST'){ const b=await readBody(req); apexUrl=(b.url||'').toString().trim(); stateLines={}; lastClock=null; allFrames.length=0; try{if(upstream)upstream.terminate();}catch(_){}; upRetry=0; if(apexUrl) connectApex(); return sendJson(res,{ok:true,url:apexUrl}); }
+    if(req.method==='POST'){ const b=await readBody(req); apexUrl=(b.url||'').toString().trim(); apexUserOrigin=(b.origin||'').toString().trim(); stateLines={}; lastClock=null; allFrames.length=0; try{if(upstream)upstream.terminate();}catch(_){}; upRetry=0; if(apexUrl) connectApex(); return sendJson(res,{ok:true,url:apexUrl}); }
     return sendJson(res,{url:apexUrl, live:!!(upstream&&upstream.readyState===1), peers:feedWss?feedWss.clients.size:0});
   }
   // estático
@@ -152,9 +152,16 @@ wss.on('connection', ws=>{
 });
 
 // ---------- RELÉ de Apex integrado (feed en la nube, ws://.../feed) ----------
-const APEX_ENDPOINT = process.env.APEX_WS || 'wss://live-data.apex-timing.com:7913/';
-const APEX_ORIGIN   = 'https://www.apex-timing.com';
-let apexUrl = (process.env.APEX_URL || '').trim();   // URL de la carrera (página); se fija en runtime vía /api/relay
+const https = require('https');
+const KNOWN_APEX_PORTS = [7913,10223,8983,8803,8804,8080];
+let apexOrigin = process.env.APEX_ORIGIN || '';
+let apexCandidates = [];
+let apexEndpoint = '';
+let apexTryIdx = 0, apexGotFrame = false, apexProbeTimer = null;
+function apexDeriveOrigin(pageUrl){ try{ const u=new URL(pageUrl); return u.protocol+'//'+u.host; }catch(_){ return 'https://www.apex-timing.com'; } }
+function apexFetch(pageUrl){ return new Promise(resolve=>{ let done=false; const fin=v=>{ if(done)return; done=true; resolve(v); }; try{ new URL(pageUrl); const rq=https.get(pageUrl,{headers:{'User-Agent':'Mozilla/5.0'},timeout:8000},r=>{ let d=''; r.on('data',c=>{ d+=c; if(d.length>1200000){try{r.destroy();}catch(_){}} }); r.on('end',()=>fin(d)); }); rq.on('error',()=>fin('')); rq.on('timeout',()=>{try{rq.destroy();}catch(_){}; fin('');}); }catch(_){ fin(''); } }); }
+  async function apexResolve(){ const addO=(a,o)=>{ if(o && a.indexOf(o)<0)a.push(o); }; if(/^wss?:\/\//i.test(apexUrl)){ const origins=[]; addO(origins,apexUserOrigin); addO(origins,process.env.APEX_ORIGIN); if(!origins.length){ addO(origins,'https://apex-timing.com'); addO(origins,'https://www.apex-timing.com'); addO(origins,'https://live.apex-timing.com'); } apexCandidates=origins.map(o=>({ep:apexUrl,origin:o})); console.log('[relay] endpoint directo '+apexUrl+'  (origins a probar: '+origins.join(', ')+')'); return; } const origin=apexUserOrigin || process.env.APEX_ORIGIN || apexDeriveOrigin(apexUrl); let eps=[]; if(process.env.APEX_WS){ eps=[process.env.APEX_WS]; } else { const html=await apexFetch(apexUrl); let m; const re=/wss?:\/\/[a-z0-9.\-]*apex-timing\.com:(\d{2,5})/gi; while((m=re.exec(html))){ const u='wss://live-data.apex-timing.com:'+m[1]+'/'; if(eps.indexOf(u)<0)eps.push(u); } const re2=/live-data\.apex-timing\.com["'\s:]{0,3}(\d{4,5})/gi; while((m=re2.exec(html))){ const u='wss://live-data.apex-timing.com:'+m[1]+'/'; if(eps.indexOf(u)<0)eps.push(u); } for(const p of KNOWN_APEX_PORTS){ const u='wss://live-data.apex-timing.com:'+p+'/'; if(eps.indexOf(u)<0)eps.push(u); } } apexCandidates=eps.map(ep=>({ep,origin})); console.log('[relay] pagina '+apexUrl+' -> puertos: '+eps.join(' , ')+'  | origin '+origin); }
+let apexUrl = (process.env.APEX_URL || '').trim(); let apexUserOrigin = '';   // URL de la carrera (página); se fija en runtime vía /api/relay
 let upstream = null, upRetry = 0, upTimer = null;
 let stateLines = {}, lastClock = null, allFrames = [];
 const feedWss = new WebSocketServer({ noServer:true });  // feed de Apex
@@ -181,16 +188,22 @@ feedWss.on('connection', client=>{
     client.send('relay|status|'+(upstream&&upstream.readyState===1?'feed de Apex en vivo':'esperando feed de Apex…'));
   }catch(_){}
 });
-function connectApex(){
-  if(!apexUrl) return;
+async function connectApex(){ if(!apexUrl) return; if(upTimer){clearTimeout(upTimer);upTimer=null;} apexTryIdx=0; await apexResolve(); apexTry(); }
+function apexTry(){
+  if(apexTryIdx>=apexCandidates.length){ console.log('[relay] ningún candidato dio feed; reintento completo'); scheduleRetry(); return; }
+  const cand=apexCandidates[apexTryIdx], ep=cand.ep, origin=cand.origin;
   try{ if(upstream) upstream.terminate(); }catch(_){}
-  console.log('[relay] conectando a Apex ('+APEX_ENDPOINT+')  ref='+apexUrl);
-  upstream = new WebSocket(APEX_ENDPOINT, { origin:APEX_ORIGIN, perMessageDeflate:true,
-    headers:{ 'Origin':APEX_ORIGIN, 'Referer':apexUrl, 'User-Agent':'Mozilla/5.0 (apex-relay)' }, handshakeTimeout:15000 });
-  upstream.on('open', ()=>{ upRetry=0; console.log('[relay] ✓ conectado a Apex'); feedBroadcast('relay|status|feed de Apex en vivo'); });
-  upstream.on('message', (data,isBinary)=>{ const text=isBinary?data.toString('utf8'):data.toString(); cacheFrame(text); feedBroadcast(text); });
-  upstream.on('close', ()=>{ console.log('[relay] Apex cerró, reintentando'); feedBroadcast('relay|status|Apex desconectado, reintentando'); scheduleRetry(); });
-  upstream.on('error', e=>{ console.log('[relay] error Apex:', (e&&e.message)||e); });
+  apexGotFrame=false;
+  console.log('[relay] probando '+ep+'  (origin '+origin+', ref '+apexUrl+')');
+  let ws; try{ ws = new WebSocket(ep, { origin:origin, perMessageDeflate:true, headers:{ 'Origin':origin, 'Referer':apexUrl, 'User-Agent':'Mozilla/5.0 (apex-relay)' }, handshakeTimeout:12000 }); }catch(_){ apexTryIdx++; return apexTry(); }
+  upstream = ws;
+  const clearProbe=()=>{ if(apexProbeTimer){clearTimeout(apexProbeTimer);apexProbeTimer=null;} };
+  const nextCand=()=>{ clearProbe(); if(ws!==upstream)return; try{ws.terminate();}catch(_){}; apexTryIdx++; apexTry(); };
+  clearProbe(); apexProbeTimer=setTimeout(()=>{ if(ws===upstream && !apexGotFrame){ console.log('[relay] '+ep+' sin datos, siguiente'); nextCand(); } }, 7000);
+  ws.on('open', ()=>{ console.log('[relay] abierto '+ep+', esperando datos…'); });
+  ws.on('message', (data,isBinary)=>{ if(ws!==upstream)return; const text=isBinary?data.toString('utf8'):data.toString(); if(!apexGotFrame){ apexGotFrame=true; apexEndpoint=ep; upRetry=0; clearProbe(); console.log('[relay] ✓ feed en '+ep); feedBroadcast('relay|status|feed de Apex en vivo'); } cacheFrame(text); feedBroadcast(text); });
+  ws.on('close', ()=>{ if(ws!==upstream)return; if(apexGotFrame){ console.log('[relay] Apex cerró, reintentando'); feedBroadcast('relay|status|Apex desconectado, reintentando'); scheduleRetry(); } else { nextCand(); } });
+  ws.on('error', e=>{ if(ws!==upstream)return; console.log('[relay] error '+ep+': '+((e&&e.message)||e)); if(!apexGotFrame){ nextCand(); } });
 }
 function scheduleRetry(){ if(upTimer) return; const w=Math.min(15000,1000*Math.pow(2,upRetry++)); upTimer=setTimeout(()=>{ upTimer=null; connectApex(); }, w); }
 if(apexUrl) connectApex();
