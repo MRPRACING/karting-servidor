@@ -182,11 +182,15 @@
   .lockbtn{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;cursor:pointer;font-size:13px;line-height:1.3;color:var(--ink)}
   .lockbtn.on{border-color:var(--amber);background:rgba(255,176,0,.12)}
   .boxwrap{padding:16px;display:flex;flex-direction:column;gap:10px;flex:1 1 auto;min-height:0;overflow-y:auto}
-  .boxwrap>#bx_top,.boxwrap>#bx_bot{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:6px}
+  .boxwrap>#bx_top,.boxwrap>#bx_bot{flex:0 0 auto;min-height:0;display:flex;flex-direction:column;gap:6px}
   .boxwrap>#bx_top:empty,.boxwrap>#bx_bot:empty{flex:0 0 0;min-height:0;gap:0}
   .boxwrap>.boxstage,.boxwrap>#editnote{flex:0 0 auto}
   #bx_top .hlbl,#bx_bot .hlbl{flex:0 0 auto}
-  #bx_top .holdstrip,#bx_top .twaitwrap,#bx_bot .holdstrip,#bx_bot .twaitwrap{min-height:0;overflow:visible}
+  #bx_top .holdstrip,#bx_top .twaitwrap{min-height:0;max-height:var(--top-h,290px);overflow-y:auto;overflow-x:hidden}
+  #bx_bot .holdstrip,#bx_bot .twaitwrap{min-height:0;max-height:var(--bot-h,290px);overflow-y:auto;overflow-x:hidden}
+  .sortrsz{height:9px;cursor:ns-resize;border-radius:5px;margin-top:2px;background:linear-gradient(#232a34,#161b22);border:1px solid var(--line);opacity:.6}
+  .sortrsz:hover{opacity:1;border-color:var(--acc)}
+
   .boxbelow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;margin-top:10px}
   .boxbelow>#bx_top{flex:1 1 240px;min-width:0;display:flex;flex-direction:column}
   .boxbelow>#bx_bot{flex:1 1 240px;min-width:0;display:flex;flex-direction:column}
@@ -596,7 +600,7 @@
             <button class="ui" id="boxrot" title="Rotar todo el cuadro 180°: gira las filas y cambia por qué lado entran y salen los karts" style="margin-left:4px">⟲ Rotar</button>
             <button class="ui" id="boxfull" title="Pantalla completa (para móvil/tablet)" style="margin-left:4px">⛶</button>
           </div></div>
-        <div class="boxwrap"><div class="boxstage" id="boxstage"><div class="boxes horiz" id="boxes"></div><div class="rsz rsz-x" id="rszx" title="Arrastra para cambiar el ancho de los recuadros"></div><div class="rsz rsz-y" id="rszy" title="Arrastra para cambiar el alto de los recuadros"></div></div><div class="boxbelow" id="boxbelow"><div id="bx_top" class="bxcol-repo"></div><div id="bx_bot" class="bxcol-exit"></div></div>
+        <div class="boxwrap"><div id="bx_top" class="bxcol-exit"><div id="bx_top_c"></div><div class="sortrsz" data-rsz="top" title="Arrastra para cambiar el alto del recuadro"></div></div><div class="boxstage" id="boxstage"><div class="boxes horiz" id="boxes"></div><div class="rsz rsz-x" id="rszx" title="Arrastra para cambiar el ancho de los recuadros"></div><div class="rsz rsz-y" id="rszy" title="Arrastra para cambiar el alto de los recuadros"></div></div><div id="bx_bot" class="bxcol-repo"><div id="bx_bot_c"></div><div class="sortrsz" data-rsz="bot" title="Arrastra para cambiar el alto del recuadro"></div></div>
           <div class="note" id="editnote" style="display:none">Modo edición: arrastra un kart y suéltalo entre dos karts para recolocarlo · ⤬ elimina el kart · «+ kart» añade uno nuevo a la fila.</div>
         </div>
       </div>
@@ -795,12 +799,13 @@
   let KART_AVG_N=5;                          // nº de mejores vueltas limpias que promedia para la nota del kart
   function mint(sc){const id=++maxKid;karts[id-1]={id,score:(sc==null?Math.round(rnd(3,98)):sc),samples:[],resid:null,pct:null,man:null,lock:false};return id;}
   function kpct(id){return karts[id-1]?karts[id-1].pct:null;}
-  function _noteFrom(laps){ if(!laps||!laps.length) return null; const ts=laps.map(l=>l.t).sort((a,b)=>a-b), med=ts[ts.length>>1]; const ok=laps.filter(l=>l.t<=med*1.3), N=Math.max(1,KART_AVG_N); const clean=ok.filter(l=>l.gap==null||l.gap>1.5).map(l=>l.t).sort((a,b)=>a-b); let sel=clean.slice(0,N); if(sel.length<N){ const dirty=ok.filter(l=>l.gap!=null&&l.gap<=1.5).map(l=>l.t+towGain()).sort((a,b)=>a-b); sel=sel.concat(dirty.slice(0,N-sel.length)); } if(!sel.length) return null; return sel.reduce((a,b)=>a+b,0)/sel.length; }
+  function isCleanLap(l){ return (l.gap==null||l.gap>CLEAN_AHEAD) && (l.gapB==null||l.gapB>CLEAN_BEHIND); }
+  function _noteFrom(laps){ if(!laps||!laps.length) return null; const ts=laps.map(l=>l.t).sort((a,b)=>a-b), med=ts[ts.length>>1]; const ok=laps.filter(l=>l.t<=med*1.3), N=Math.max(1,KART_AVG_N); let sel; if(PRIOCLEAN){ const clean=ok.filter(isCleanLap).map(l=>l.t).sort((a,b)=>a-b); sel=clean.slice(0,N); if(!sel.length){ const dirty=ok.filter(l=>!isCleanLap(l)).map(l=>l.t+towGain()).sort((a,b)=>a-b); sel=dirty.slice(0,N); } } else { const all=ok.map(l=>isCleanLap(l)?l.t:l.t+towGain()).sort((a,b)=>a-b); sel=all.slice(0,N); } if(!sel.length) return null; return sel.reduce((a,b)=>a+b,0)/sel.length; }
   function towGain(){const el=document.getElementById('toprebufo');const v=el?parseFloat(el.value):TOW_MAX;return (isFinite(v)&&v>=0)?v:TOW_MAX;}
   function goodMargin(){const el=document.getElementById('topmargin');const v=el?parseFloat(el.value):0.1;return (isFinite(v)&&v>=0)?v:0.1;}
-  function recommendedTow(){const useRel=reliableSet.size>0;const diffs=[];karts.forEach(k=>{if(!k||!k.rawLaps)return;const laps=useRel?k.rawLaps.filter(l=>reliableSet.has(l.team)):k.rawLaps;if(laps.length<4)return;const clean=laps.filter(l=>l.t>0&&(l.gap==null||l.gap>1.5)).map(l=>l.t).sort((a,b)=>a-b);const tow=laps.filter(l=>l.t>0&&l.gap!=null&&l.gap<=1.5).map(l=>l.t).sort((a,b)=>a-b);const n=Math.min(clean.length,tow.length,5);for(let i=0;i<n;i++){const dd=clean[i]-tow[i];if(dd>-0.5&&dd<3)diffs.push(dd);}});if(diffs.length<4)return null;return diffs.reduce((a,b)=>a+b,0)/diffs.length;}
+  function recommendedTow(){const useRel=reliableSet.size>0;const diffs=[];karts.forEach(k=>{if(!k||!k.rawLaps)return;const laps=useRel?k.rawLaps.filter(l=>reliableSet.has(l.team)):k.rawLaps;if(laps.length<4)return;const clean=laps.filter(l=>l.t>0&&(l.gap==null||l.gap>CLEAN_AHEAD)).map(l=>l.t).sort((a,b)=>a-b);const tow=laps.filter(l=>l.t>0&&l.gap!=null&&l.gap<=CLEAN_AHEAD).map(l=>l.t).sort((a,b)=>a-b);const n=Math.min(clean.length,tow.length,5);for(let i=0;i<n;i++){const dd=clean[i]-tow[i];if(dd>-0.5&&dd<3)diffs.push(dd);}});if(diffs.length<4)return null;return diffs.reduce((a,b)=>a+b,0)/diffs.length;}
   function racePace(){const useRel=reliableSet.size>0;const ls=teams.filter(t=>!t.inPit&&!t.retired&&(!useRel||reliableSet.has(t.dorsal))&&t.last>0).map(t=>t.last);if(ls.length<2)return null;const med=ls.slice().sort((a,b)=>a-b)[ls.length>>1];const clean=ls.filter(l=>l<med*1.25).sort((a,b)=>a-b).slice(0,5);if(!clean.length)return null;return clean.reduce((a,b)=>a+b,0)/clean.length;}
-  function kartNote(kid){ const K=karts[kid-1]; if(!K||!K.rawLaps||!K.rawLaps.length){ if(K)K._noteBacked=false; return null; } const laps=K.rawLaps.filter(l=>l.t>0); const rel=laps.filter(l=>reliableSet.has(l.team)); const relNote=_noteFrom(rel); if(relNote!=null){ K._noteBacked=true; const unrel=laps.filter(l=>!reliableSet.has(l.team)); const impr=unrel.filter(l=>(l.gap==null||l.gap>1.5)&&l.t<relNote); return _noteFrom(rel.concat(impr)); } K._noteBacked=false; return _noteFrom(laps); }
+  function kartNote(kid){ const K=karts[kid-1]; if(!K||!K.rawLaps||!K.rawLaps.length){ if(K)K._noteBacked=false; return null; } const laps=K.rawLaps.filter(l=>l.t>0); const rel=laps.filter(l=>reliableSet.has(l.team)); const relNote=_noteFrom(rel); if(relNote!=null){ K._noteBacked=true; const unrel=laps.filter(l=>!reliableSet.has(l.team)); const impr=unrel.filter(l=>isCleanLap(l)&&l.t<relNote); return _noteFrom(rel.concat(impr)); } K._noteBacked=false; return _noteFrom(laps); }
   function kq(id){const k=karts[id-1];return k?(1-clamp(k.score,0,100)/100)*KART_SPREAD:KART_SPREAD;}
 
   for(let i=0;i<N_TEAMS;i++)mint();           // karts 1..12 on track
@@ -826,7 +831,7 @@
   function manEffect(m){return (1-clamp(m,0,10)/10)*DRIVER_SPREAD;}    // nota fija 0-10 -> penalización en s
   function drvShown(d){return (d.lock&&d.man!=null)?clamp(d.man*10,0,100):d.pct;}
   function lapTime(t){return BASE+kq(t.kart)+drvPen(drv(t))+(rainOn?RAINPEN:0)+trackEvo(now)+rnd(-0.15,0.15);}
-  let TOW_NEAR=1.2,TOW_MAX=0.5,TRAFFIC_NEAR=0.7,TRAFFIC_MAX=0.4,CLEAN_AHEAD=2.0,CLEAN_BEHIND=1.5;
+  let TOW_NEAR=1.2,TOW_MAX=0.5,TRAFFIC_NEAR=0.7,TRAFFIC_MAX=0.4,CLEAN_AHEAD=2.0,CLEAN_BEHIND=1.5;let PRIOCLEAN=1;
   let trackEoEst=0;
   function trackEvo(time){const f=clamp(time/Math.max(1,DEMO_RACE),0,1);return f<0.25?0.5*(1-f/0.25):0.25*((f-0.25)/0.75);}
   function nearGaps(t){const me=progress(t);let af=Infinity,bf=Infinity,ao=null;teams.forEach(o=>{if(o===t||o.inPit)return;const d=progress(o)-me,sec=Math.abs(d)*t.target;if(d>0){if(sec<af){af=sec;ao=o;}}else if(d<0){if(sec<bf)bf=sec;}});return{ahead:af,behind:bf,ao};}
@@ -1165,7 +1170,7 @@
     kart:{label:'Nota kart',cls:'',get:(t,c)=>c.kcell},
     laps:{label:'Vue',cls:'',get:(t)=>t.laps},
     pits:{label:'Paradas',cls:'',get:(t,c)=>c.stops},
-    vpos:{label:'P.virt',cls:'',get:(t,c)=>{const dp=(c.i+1)-c.vp;const ar=dp>0?' <span style="color:#37d67a">▲</span>':dp<0?' <span style="color:#ff5d5d">▼</span>':'';return c.vp+ar;}}
+    vpos:{label:'P.virt',cls:'',get:(t,c)=>c.vp}
   };
   const BASECOLS=['pos','num','team','driver','turno','gap','int','vpos','last','avg','best','kart','laps','pits'];
   let colOrder=BASECOLS.slice();
@@ -1208,7 +1213,7 @@
      lastRedAnchor = cleans.length ? Math.max(...cleans) : (recordBest<Infinity?recordBest+1.6:0);}
     avgMin=Infinity;avgMax=0;teams.forEach(t=>{const v=stintAvg(t);if(v!=null){if(v<avgMin)avgMin=v;if(v>avgMax)avgMax=v;}});
     const ck=document.getElementById('clock');
-    const aRem=(apexMode&&apex.clockMs!=null)?Math.max(0,apex.clockMs/1000-(performance.now()-(apex.clockAnchor||performance.now()))/1000*(apex._speed||1)):0;
+    const aRem=(apexMode&&apex.clockMs!=null)?(apex._running?Math.max(0,apex.clockMs/1000-(performance.now()-(apex.clockAnchor||performance.now()))/1000*(apex._speed||1)):apex.clockMs/1000):0;
     ck.textContent=fmtClock(apexMode?aRem:(clockMode==='down'?DEMO_RACE-now:now))+((apexMode&&apex._speed&&apex._speed>1.3)?(' ·'+Math.round(apex._speed)+'x'):'');
     ck.classList.toggle('fin',finalized);
     document.getElementById('clocklbl').textContent=apexMode?'Restante':(finalized?'Carrera finalizada':(clockMode==='down'?'Restante':'Transcurrido'));
@@ -1275,8 +1280,8 @@
         const covered=mode==='auto';
         const w=karts[id-1]&&karts[id-1].drop;
         const usedMe=!!(_usedSet&&_usedSet.has(id));
-        const who=covered?'':(w?`<div class="kwho"><span class="kd">${w.dorsal}</span><span class="kn">${w.name}</span></div>`:`<div class="kwho"><span class="kd dim">—</span><span class="kn dim">reserva</span></div>`);
-        q+=`<div class="kart ${idx===0&&!covered?'front':''} ${covered?'covered':''} ${usedMe?'usedme':''} ${(editMode||mode!=='auto')?'draggable':''}" data-pos="${ri},${idx}">${covered?'<span class="cov">▦</span>':`${who}<span class="q big" style="color:${col}">${_kn==null?'··':fmtNote(_kn)}</span>${usedMe?'<span class="usedtag">ya usado</span>':''}`}${ed}</div>`;});
+        const who=covered?'':(w?`<div class="kwho"><span class="kd">${w.dorsal}</span><span class="kn">${cutName(w.name)}</span></div>`:`<div class="kwho"><span class="kd dim">—</span><span class="kn dim">reserva</span></div>`);
+        q+=`<div class="kart ${idx===0&&!covered?'front':''} ${covered?'covered':''} ${usedMe?'usedme':''} ${(editMode||(mode!=='auto'&&idx===0))?'draggable':''}" data-pos="${ri},${idx}">${covered?'<span class="cov">▦</span>':`${who}<span class="q big" style="color:${col}">${_kn==null?'··':fmtNote(_kn)}</span>${usedMe?'<span class="usedtag">ya usado</span>':''}`}${ed}</div>`;});
       if(editMode)q+=`<button class="kadd" data-add="${ri}" title="Añadir kart a esta fila">+ kart</button>`;
       else if(mode!=='auto')q+=`<div class="kart endslot" data-end="${ri}" title="Suelta aquí para dejarlo al final"><span class="endhint">+</span></div>`;
       bh+=`<div class="brow">${lab}<div class="queue ${kartDir==='rev'?'rev':''}">${q}</div></div>`;
@@ -1285,13 +1290,13 @@
       const bx=document.getElementById('boxes');bx.className='boxes '+(orient==='vert'?'vert':'horiz')+(boxRot?' rot':'');bx.style.setProperty('--bw',boxW+'px');bx.style.setProperty('--bh',boxH+'px');bx.innerHTML=bh;
       let strip='',tlist='',autohdr='';
       if(mode!=='auto'){
-        const chips=holding.map((h,hi)=>{const _kn=kartNote(h.kart),c=(_kn==null)?'#7c8794':lapColor(clamp((_kn-(bestKN!=null?bestKN:_kn))/knInt(),0,1));return `<div class="pchip" data-hold="${hi}" title="Arrástralo a una fila de cambio"><span class="pinfo"><span class="pd">${h.dorsal}</span><span class="pnm">${h.name}</span></span><span class="pq" style="color:${c}">${_kn==null?'—':fmtNote(_kn)}</span></div>`;}).join('');
+        const chips=holding.map((h,hi)=>{const _kn=kartNote(h.kart),c=(_kn==null)?'#7c8794':lapColor(clamp((_kn-(bestKN!=null?bestKN:_kn))/knInt(),0,1));return `<div class="pchip" data-hold="${hi}" title="Arrástralo a una fila de cambio"><span class="pinfo"><span class="pd">${h.dorsal}</span><span class="pnm">${cutName(h.name)}</span></span><span class="pq" style="color:${c}">${_kn==null?'—':fmtNote(_kn)}</span>${h.pitAt?`<span class="pt" style="font-size:10px;color:#7c8794;margin-left:4px">⏱ ${mmss(now-h.pitAt)}</span>`:''}</div>`;}).join('');
         strip=`<div class="hlbl cyan">Cola de repostaje — ${mode==='autodirect'?'suéltalos en una fila (van solos al equipo que espera)':'arrástralos a una fila'}</div><div class="holdstrip ${holding.length?'':'empty'}">${holding.length?chips:'<span class="hhint">Cuando un equipo para, su kart cae aquí.</span>'}</div>`;
         const waiting=teams.filter(t=>t.inPit&&(t.placed||!t.waitKart)).sort((a,b)=>(a.pitSeq||0)-(b.pitSeq||0));
         const tw=waiting.map(t=>{const el=pitClock(t);if(t.waitKart)
-          return `<div class="twait" data-twait="${t.dorsal}" title="${mode==='autodirect'?'Cogerá kart al soltar uno en una fila':'Arrástrale un kart de una fila'}"><span class="kd">${t.dorsal}</span><span class="tn">${t.name}</span><span class="twt">${el}</span></div>`;
+          return `<div class="twait" data-twait="${t.dorsal}" title="${mode==='autodirect'?'Cogerá kart al soltar uno en una fila':'Arrástrale un kart de una fila'}"><span class="kd">${t.dorsal}</span><span class="tn">${cutName(t.name)}</span><span class="twt">${el}</span></div>`;
           const np=kpct(t.kart),nc=np==null?'#7c8794':scoreColor(np),rev=!!t.takeUndo;
-          return `<div class="twait done${rev?' rev':''}"${rev?` data-twaitback="${t.dorsal}" title="Arrástralo a una fila para deshacer"`:''}><span class="kd">${t.dorsal}</span><span class="tn">${t.name}</span><span class="twq" style="color:${nc}">${np==null?'—':np.toFixed(0)}</span><span class="twt pitbig" title="Cronómetro de la parada en boxes">⏱ ${el}</span></div>`;}).join('');
+          return `<div class="twait done${rev?' rev':''}"${rev?` data-twaitback="${t.dorsal}" title="Arrástralo a una fila para deshacer"`:''}><span class="kd">${t.dorsal}</span><span class="tn">${cutName(t.name)}</span><span class="twq" style="color:${nc}">${np==null?'—':np.toFixed(0)}</span><span class="twt pitbig" title="Cronómetro de la parada en boxes">⏱ ${el}</span></div>`;}).join('');
         tlist=`<div class="hlbl amber">Fila de salida de boxes${mode==='autodirect'?' — el 1º coge el kart que sueltes':''}</div><div class="twaitwrap ${waiting.length?'':'empty'}">${waiting.length?tw:'<span class="hhint">Aparecerán aquí al parar y se van al salir de boxes.</span>'}</div>`;
       }else{
         const onTrack=teams.filter(t=>!t.inPit&&!t.retired);
@@ -1304,8 +1309,8 @@
       }
       const _bxw=document.querySelector('.boxwrap');if(_bxw)_bxw.classList.toggle('rotw',boxRot);
       const _bb=document.getElementById('boxbelow');if(_bb)_bb.classList.toggle('est',mode==='auto');
-      if(mode==='auto'){document.getElementById('bx_top').innerHTML=autohdr;document.getElementById('bx_bot').innerHTML='';}
-      else{document.getElementById('bx_top').innerHTML=boxRot?tlist:strip;document.getElementById('bx_bot').innerHTML=boxRot?strip:tlist;}
+      if(mode==='auto'){document.getElementById('bx_top_c').innerHTML=autohdr;document.getElementById('bx_bot_c').innerHTML='';}
+      else{document.getElementById('bx_top_c').innerHTML=boxRot?strip:tlist;document.getElementById('bx_bot_c').innerHTML=boxRot?tlist:strip;}
     }
     document.getElementById('editnote').style.display=editMode?'block':'none';
     if(typeof reflowBoxes==='function')reflowBoxes();
@@ -1426,6 +1431,7 @@
       <div class="pnote">Ajusta cómo modela el simulador los tiempos. Los cambios se aplican al instante. <button class="lockbtn" data-algoreset style="margin-left:6px">Restaurar valores</button></div>
       <div class="ptabwrap">
         <div class="psec">Nota del kart</div>
+        <div class="prow"><div class="plbl"><b>Modo de la nota</b><span class="phint">activado: solo vueltas limpias. desactivado: las X mejores (a las de rebufo se les suma el Rebufo)</span></div><div class="pctl"><label class="tog"><input type="checkbox" data-algotgl="PRIOCLEAN" ${PRIOCLEAN?'checked':''}><span>Priorizar limpias</span></label></div></div>
         ${f('Vueltas para la media','KART_AVG_N',KART_AVG_N,1,15,1,'cuántas de las mejores vueltas limpias se promedian para la nota del kart')}
         <div class="psec">Vuelta limpia (para puntuar)</div>
         ${f('Hueco mín. por delante','CLEAN_AHEAD',CLEAN_AHEAD,0,6,0.1,'s libres delante para contar como limpia')}
@@ -1466,9 +1472,9 @@
   const DDBK='driverdb';
   function saveDriverDB(){try{const o={};allDrivers.forEach(d=>{if(d.lock&&d.man!=null)o[d.name]=d.man;});window.storage.set(DDBK,JSON.stringify(o),false);}catch(e){}}
   function loadDriverDB(){return window.storage.get(DDBK).then(r=>{if(r&&r.value){const o=JSON.parse(r.value);allDrivers.forEach(d=>{if(o[d.name]!=null){d.man=+o[d.name];d.lock=true;}});}}).catch(()=>{});}
-  const ALGO_DEF={BASE:48,RAINPEN:17,KART_SPREAD:1.0,DRIVER_SPREAD:1.5,KART_AVG_N:5,TOW_MAX:0.5,TOW_NEAR:1.2,TRAFFIC_MAX:0.4,TRAFFIC_NEAR:0.7,CLEAN_AHEAD:2.0,CLEAN_BEHIND:1.5},ALGOK='algocfg';
-  function setAlgo(k,v){switch(k){case'BASE':BASE=v;break;case'RAINPEN':RAINPEN=v;break;case'KART_SPREAD':KART_SPREAD=v;break;case'DRIVER_SPREAD':DRIVER_SPREAD=v;break;case'KART_AVG_N':KART_AVG_N=Math.max(1,Math.round(v));break;case'TOW_MAX':TOW_MAX=v;break;case'TOW_NEAR':TOW_NEAR=v;break;case'TRAFFIC_MAX':TRAFFIC_MAX=v;break;case'TRAFFIC_NEAR':TRAFFIC_NEAR=v;break;case'CLEAN_AHEAD':CLEAN_AHEAD=v;break;case'CLEAN_BEHIND':CLEAN_BEHIND=v;break;}}
-  function saveAlgo(){try{const o={BASE,RAINPEN,KART_SPREAD,DRIVER_SPREAD,KART_AVG_N,TOW_MAX,TOW_NEAR,TRAFFIC_MAX,TRAFFIC_NEAR,CLEAN_AHEAD,CLEAN_BEHIND};window.storage.set(ALGOK,JSON.stringify(o),false);}catch(e){}}
+  const ALGO_DEF={BASE:48,RAINPEN:17,KART_SPREAD:1.0,DRIVER_SPREAD:1.5,KART_AVG_N:5,TOW_MAX:0.5,TOW_NEAR:1.2,TRAFFIC_MAX:0.4,TRAFFIC_NEAR:0.7,CLEAN_AHEAD:2.0,CLEAN_BEHIND:1.5,PRIOCLEAN:1},ALGOK='algocfg';
+  function setAlgo(k,v){switch(k){case'BASE':BASE=v;break;case'RAINPEN':RAINPEN=v;break;case'KART_SPREAD':KART_SPREAD=v;break;case'DRIVER_SPREAD':DRIVER_SPREAD=v;break;case'KART_AVG_N':KART_AVG_N=Math.max(1,Math.round(v));break;case'TOW_MAX':TOW_MAX=v;break;case'TOW_NEAR':TOW_NEAR=v;break;case'TRAFFIC_MAX':TRAFFIC_MAX=v;break;case'TRAFFIC_NEAR':TRAFFIC_NEAR=v;break;case'CLEAN_AHEAD':CLEAN_AHEAD=v;break;case'CLEAN_BEHIND':CLEAN_BEHIND=v;break;case'PRIOCLEAN':PRIOCLEAN=v?1:0;break;}}
+  function saveAlgo(){try{const o={BASE,RAINPEN,KART_SPREAD,DRIVER_SPREAD,KART_AVG_N,TOW_MAX,TOW_NEAR,TRAFFIC_MAX,TRAFFIC_NEAR,CLEAN_AHEAD,CLEAN_BEHIND,PRIOCLEAN};window.storage.set(ALGOK,JSON.stringify(o),false);}catch(e){}}
   function loadAlgo(){return window.storage.get(ALGOK).then(r=>{if(r&&r.value){const o=JSON.parse(r.value);Object.keys(ALGO_DEF).forEach(k=>{if(o[k]!=null&&!isNaN(+o[k]))setAlgo(k,+o[k]);});}}).catch(()=>{});}
   document.getElementById('pmodal').addEventListener('click',e=>{
     if(e.target.id==='pmodal'||e.target.hasAttribute('data-pclose')){closePanel();return;}
@@ -1477,6 +1483,7 @@
     const dl=e.target.closest('[data-dlock]');if(dl){const nm=dl.dataset.dlock;allDrivers.filter(d=>d.name===nm).forEach(d=>{d.lock=!d.lock;if(d.lock&&d.man==null)d.man=d.pct!=null?+(d.pct/10).toFixed(1):5;});recompute();saveDriverDB();renderPanel();render();return;}
   });
   document.getElementById('pmodal').addEventListener('change',e=>{
+    const _tg=e.target.closest('[data-algotgl]');if(_tg){setAlgo(_tg.dataset.algotgl,_tg.checked?1:0);saveAlgo();recompute();renderPanel();render();return;}
     const al=e.target.closest('[data-algo]');if(al){let v=+al.value;if(isNaN(v))v=ALGO_DEF[al.dataset.algo];setAlgo(al.dataset.algo,Math.max(0,v));saveAlgo();recompute();render();return;}
     const km=e.target.closest('[data-kman]');if(km){const k=karts[+km.dataset.kman-1];if(k){k.man=km.value===''?null:clamp(+km.value,0,100);k.lock=k.man!=null;recompute();renderPanel();render();}return;}
     const dm=e.target.closest('[data-dman]');if(dm){const nm=dm.dataset.dman,v=dm.value===''?null:clamp(+dm.value,0,10);allDrivers.filter(d=>d.name===nm).forEach(d=>{d.man=v;d.lock=v!=null;});recompute();saveDriverDB();renderPanel();render();return;}
@@ -1718,7 +1725,8 @@
     else{const q=rowEl.querySelector('.queue');const tchips=[...q.querySelectorAll('.kart[data-pos]:not(.dragsrc)')];if(index>=tchips.length){const end=q.querySelector('.endslot,.kadd');if(end)q.insertBefore(gap,end);else q.appendChild(gap);}else q.insertBefore(gap,tchips[index]);}
     prev.forEach(p=>{const n=p.c.getBoundingClientRect();const dx=p.r.left-n.left,dy=p.r.top-n.top;if(Math.abs(dx)>0.5||Math.abs(dy)>0.5){p.c.style.transition='none';p.c.style.transform='translate('+dx+'px,'+dy+'px)';requestAnimationFrame(()=>{p.c.style.transition='transform .2s cubic-bezier(.2,.85,.25,1)';p.c.style.transform='';});}});}
   function cleanupDrag(){if(kdrag){if(kdrag.ghost)kdrag.ghost.remove();if(kdrag.gap&&kdrag.gap.parentNode)kdrag.gap.parentNode.removeChild(kdrag.gap);}kdrag=null;dragSettle=0;clearMarks();render();}
-  function ghostBox(note,dorsal,name,col){const who=dorsal!=null?`<div class="gw"><span class="gd">${dorsal}</span><span>${name}</span></div>`:`<div class="gw"><span class="gd" style="background:#1a2029;color:#5d6b7e">—</span><span style="color:#5d6b7e">reserva</span></div>`;return who+`<div class="gq" style="color:${col}">${note==null?'··':note.toFixed(0)}</div>`;}
+  const cutName=s=>{s=(s==null?'':s).toString();return s.length>10?s.slice(0,10):s;};
+  function ghostBox(note,dorsal,name,col){const who=dorsal!=null?`<div class="gw"><span class="gd">${dorsal}</span><span>${cutName(name)}</span></div>`:`<div class="gw"><span class="gd" style="background:#1a2029;color:#5d6b7e">—</span><span style="color:#5d6b7e">reserva</span></div>`;return who+`<div class="gq" style="color:${col}">${note==null?'··':note.toFixed(0)}</div>`;}
   function startGhost(e,html,col){const g=document.createElement('div');g.className='kghost';g.innerHTML=html;if(col)g.style.borderColor=col;document.body.appendChild(g);kdrag.ghost=g;kdrag.touch=(e.pointerType==='touch');g.style.left=e.clientX+'px';g.style.top=(e.clientY+(kdrag.touch?-52:0))+'px';e.preventDefault();try{boxwrapEl.setPointerCapture(e.pointerId);}catch(_){}}
   function twaitUnder(e){const el=document.elementFromPoint(e.clientX,e.clientY);const tw=el?el.closest('.twait[data-twait]'):null;if(!tw)return null;const t=teams.find(x=>x.dorsal===+tw.dataset.twait);return(t&&t.waitKart&&t.placed)?tw:null;}
   function flyTake(r,dorsal){
@@ -1747,6 +1755,7 @@
     const k=e.target.closest('.kart');if(!k||!k.dataset.pos)return;
     if(!editMode&&mode==='auto')return;
     const[row,idx]=k.dataset.pos.split(',').map(Number);const id=rows[row][idx];
+    if(!editMode&&idx!==0)return;
     kdrag=editMode?{kind:'move',row,idx,id,gap:makeGap()}:{kind:'take',row,idx,id,gap:makeGap()};
     const note=kpct(id),col=note==null?'#7c8794':scoreColor(note),w=karts[id-1]&&karts[id-1].drop;
     startGhost(e,ghostBox(note,w?w.dorsal:null,w?w.name:null,col),col);
@@ -1768,7 +1777,7 @@
       if(k.overTeam){const t=teams.find(x=>x.dorsal===+k.overTeam.dataset.twait);if(t&&t.waitKart){for(let r=0;r<rows.length;r++){const ix=rows[r].indexOf(k.id);if(ix>=0){manualTake(t,r,ix);break;}}}}
       else if(k.gpos){for(let r=0;r<rows.length;r++){const ix=rows[r].indexOf(k.id);if(ix>=0){rows[r].splice(ix,1);break;}}rows[k.gpos.row].splice(k.gpos.index,0,k.id);done={tr:k.gpos.row,id:k.id};}
     }else if(k.kind==='place'){
-      if(k.gpos){rows[k.gpos.row].splice(k.gpos.index,0,k.id);if(karts[k.id-1])karts[k.id-1].drop={dorsal:k.entry.dorsal,name:k.entry.name};const tm=teams.find(x=>x.dorsal===k.entry.dorsal);if(tm)tm.placed=true;const i=holding.indexOf(k.entry);if(i>=0)holding.splice(i,1);
+      if(k.gpos){if(!editMode)k.gpos.index=rows[k.gpos.row].length;rows[k.gpos.row].splice(k.gpos.index,0,k.id);if(karts[k.id-1])karts[k.id-1].drop={dorsal:k.entry.dorsal,name:k.entry.name};const tm=teams.find(x=>x.dorsal===k.entry.dorsal);if(tm)tm.placed=true;const i=holding.indexOf(k.entry);if(i>=0)holding.splice(i,1);
         if(mode==='autodirect'&&tm&&tm.waitKart){const R0=k.gpos.row;let R=nrRow(tm,R0);if(!rows[R]||!rows[R].length)R=R0;if(rows[R]&&rows[R].length){const inId=rows[R].shift();const prevDi=tm.di;pushUsed(tm,tm.kart);tm.kart=inId;pushUsed(tm,inId);tm.waitKart=false;tm.placed=true;tm.releaseAt=Math.max(tm.pitStart+MIN_PIT,now+5);tm.assigned=true;tm.stops++;if(noRepeat||Math.random()<0.5)tm.di=(tm.di+1)%tm.drivers.length;tm.takeUndo={di:prevDi,held:null,heldRow:R};}}
         done={tr:k.gpos.row,id:k.id};}
     }else if(k.kind==='untake'){
@@ -1804,6 +1813,9 @@
   chartRef=me;buildTeamPick();buildRefSelect();
   renderHead();
   planner();render();
+  function applySortHeights(){ try{ const bw=document.querySelector('.boxwrap'); if(!bw)return; ['top','bot'].forEach(w=>{ const v=window.__mrpMem&&window.__mrpMem['sort_'+w+'_h']; if(v)bw.style.setProperty('--'+w+'-h',v); }); }catch(_){} }
+  document.addEventListener('pointerdown',e=>{ const rz=e.target.closest('.sortrsz'); if(!rz)return; e.preventDefault(); const which=rz.dataset.rsz, vn='--'+which+'-h', bw=document.querySelector('.boxwrap'); if(!bw)return; const sy=e.clientY; let cur=parseInt(bw.style.getPropertyValue(vn))||parseInt(getComputedStyle(bw).getPropertyValue(vn))||290; const mv=ev=>{ const h=Math.max(80,Math.min(800,cur+(ev.clientY-sy))); bw.style.setProperty(vn,h+'px'); }; const up=()=>{ document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); try{ window.storage.set('sort_'+which+'_h', bw.style.getPropertyValue(vn), false); }catch(_){} }; document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up); });
+  applySortHeights();
 
   // ----- menú de inicio / circuitos -----
   let circuits=[];const CK='circuit:',LAYK='collayout',$=id=>document.getElementById(id);
@@ -1824,11 +1836,21 @@
     try{ await loadDriverDB(); }catch(_){}
     try{ recompute(); }catch(_){}
     try{ renderHead(); }catch(_){}
+    try{ renderPanel(); }catch(_){}
     try{ render(); }catch(_){}
+    try{ applySortHeights(); }catch(_){}
   }
   const SYNCF=['toprebufo','topknint','topmargin','cf_h','cf_stops','cf_max','cf_min','cf_pitmin','cf_drvmin','cf_boxclose','cf_rows','cf_per'];
   function captureFields(){ const f={}; SYNCF.forEach(id=>{ const el=document.getElementById(id); if(el) f[id]=el.value; }); return f; }
-  function syncSendNow(){ if(_applyingRemote)return; if(!(_syncWS&&_syncWS.readyState===1))return; try{ _syncWS.send(JSON.stringify({type:'state',state:{kv:window.__mrpMem||{},f:captureFields(),me:(typeof me!=='undefined'?me:null)}})); }catch(_){} }
+  let _lastSorteoSig='';
+  function captureSorteo(){ const drops={}; try{ rows.forEach(r=>r.forEach(id=>{ const k=karts[id-1]; if(k&&k.drop)drops[id]=k.drop; })); }catch(_){}
+    return {rows:rows.map(r=>Array.isArray(r)?r.slice():[]), holding:holding.map(h=>({kart:h.kart,dorsal:h.dorsal,name:h.name})), drops:drops}; }
+  function applySorteo(so){ if(!so||typeof so!=='object')return; try{
+    if(Array.isArray(so.rows)){ rows.length=0; so.rows.forEach(r=>rows.push(Array.isArray(r)?r.slice():[])); if(rows.length)rowsN=rows.length; }
+    if(Array.isArray(so.holding)){ holding.length=0; so.holding.forEach(h=>holding.push({kart:h.kart,dorsal:h.dorsal,name:h.name})); }
+    if(so.drops&&typeof so.drops==='object'){ Object.keys(so.drops).forEach(id=>{ const i=(+id)-1; if(i<0)return; if(!karts[i])karts[i]={id:+id,score:50,samples:[],resid:null,pct:null,man:null,lock:false,rawLaps:[]}; karts[i].drop=so.drops[id]; if(+id>maxKid)maxKid=+id; }); }
+  }catch(_){} }
+  function syncSendNow(){ if(_applyingRemote)return; if(!(_syncWS&&_syncWS.readyState===1))return; try{ _syncWS.send(JSON.stringify({type:'state',state:{kv:window.__mrpMem||{},f:captureFields(),me:(typeof me!=='undefined'?me:null),so:captureSorteo()}})); }catch(_){} }
   window.__mrpSync=function(){ if(_applyingRemote)return; if(_syncTimer)clearTimeout(_syncTimer); _syncTimer=setTimeout(syncSendNow,450); };
   document.addEventListener('input',ev=>{ const id=ev.target&&ev.target.id; if(id&&SYNCF.indexOf(id)>=0&&window.__mrpSync)window.__mrpSync(); });
   document.addEventListener('change',ev=>{ const id=ev.target&&ev.target.id; if(id&&(SYNCF.indexOf(id)>=0||id==='set_me')&&window.__mrpSync)window.__mrpSync(); });
@@ -1842,13 +1864,14 @@
       const st=m.state; if(!st||typeof st!=='object') return;
       const rich=('kv'in st)||('f'in st)||('me'in st);
       const kv=rich?(st.kv||{}):st, fields=rich?(st.f||{}):{}, meVal=rich?st.me:undefined;
-      if(!(Object.keys(kv).length||Object.keys(fields).length||(meVal!==undefined&&meVal!==null))){ syncSendNow(); return; }
+      if(!(Object.keys(kv).length||Object.keys(fields).length||(meVal!==undefined&&meVal!==null)||(rich&&st.so))){ syncSendNow(); return; }
       _applyingRemote=true;
       try{
         window.__mrpMem=Object.assign({},kv);
         try{ Object.keys(kv).forEach(k=>{ try{ localStorage.setItem('mrp:'+k,kv[k]); }catch(_){} }); }catch(_){}
         try{ Object.keys(fields).forEach(fid=>{ const el=document.getElementById(fid); if(el&&document.activeElement!==el) el.value=fields[fid]; }); }catch(_){}
         try{ if(meVal!==undefined&&meVal!==null){ me=+meVal; teams.forEach(t=>t.you=(t.dorsal===me)); } }catch(_){}
+        try{ if(rich&&st.so) applySorteo(st.so); }catch(_){}
         await reapplyAll();
         try{ syncConfig(); }catch(_){}
         try{ planner(); }catch(_){}
@@ -1860,6 +1883,7 @@
     _syncWS.onerror=()=>{};
   }
   if(location.protocol!=='file:') setTimeout(syncConnect,900);
+  setInterval(()=>{ if(_applyingRemote)return; let sig; try{ sig=JSON.stringify([rows,holding]); }catch(_){ return; } if(sig!==_lastSorteoSig){ if(_lastSorteoSig!=='' && window.__mrpSync) window.__mrpSync(); _lastSorteoSig=sig; } }, 700);
   async function saveLayout(){try{await window.storage.set(LAYK,JSON.stringify({order:colOrder,hidden:[...hiddenCols],boxW,boxH}),false);}catch(_){}}
   async function loadLayout(){try{const g=await window.storage.get(LAYK,false);if(g&&g.value){const o=JSON.parse(g.value);if(o&&Array.isArray(o.order)){
     const known=Object.keys(COLS);let ord=[...new Set(o.order.filter(id=>known.includes(id)))];
@@ -1951,7 +1975,7 @@
     apexSync();if(!apex._replaying)render();}
   function apexToken(tk){if(!tk)return;const i1=tk.indexOf('|');if(i1<0)return;const key=tk.slice(0,i1),restA=tk.slice(i1+1);const i2=restA.indexOf('|'),sub=i2<0?restA:restA.slice(0,i2),val=i2<0?'':restA.slice(i2+1);
     if(key==='init')apex.rows={};
-    else if(key==='dyn1'&&sub==='countdown'){const _nv=parseInt(val,10)||0;const _pv=apex.clockMs;const _tw=performance.now();if(apex._replaying){apex._accDc=0;apex._accDt=0;}else if(apex._spSkip>0){apex._spSkip--;apex._accDc=0;apex._accDt=0;}else if(_pv!=null){const _d=_pv-_nv;if(_d>=0&&_d<120000){apex._accDc=(apex._accDc||0)+_d;apex._accDt=(apex._accDt||0)+Math.max(0,_tw-(apex._clkWall||_tw));if(apex._accDt>=250&&apex._accDc>0){const _sp=apex._accDc/apex._accDt;if(_sp>=0.1&&_sp<=80){if(apex._speed==null||_sp>apex._speed*1.8||_sp<apex._speed*0.55)apex._speed=_sp;else apex._speed=apex._speed*0.5+_sp*0.5;apex._speed=Math.max(0.1,Math.min(80,apex._speed));}apex._accDc=0;apex._accDt=0;}}else{apex._accDc=0;apex._accDt=0;}}apex._clkWall=_tw;apex._running=(_pv==null)?(_nv>0):(_nv<_pv-250?true:(_nv>_pv+1000?true:false));apex.clockMs=_nv;apex.clockAnchor=_tw;}
+    else if(key==='dyn1'&&sub==='countdown'){const _nv=parseInt(val,10)||0;const _pv=apex.clockMs;const _tw=performance.now();if(apex._replaying){apex._accDc=0;apex._accDt=0;}else if(apex._spSkip>0){apex._spSkip--;apex._accDc=0;apex._accDt=0;}else if(_pv!=null){const _d=_pv-_nv;if(_d>=0&&_d<120000){apex._accDc=(apex._accDc||0)+_d;apex._accDt=(apex._accDt||0)+Math.max(0,_tw-(apex._clkWall||_tw));if(apex._accDt>=250&&apex._accDc>0){const _sp=apex._accDc/apex._accDt;if(_sp>=0.1&&_sp<=80){if(apex._speed==null||_sp>apex._speed*1.8||_sp<apex._speed*0.55)apex._speed=_sp;else apex._speed=apex._speed*0.5+_sp*0.5;apex._speed=Math.max(0.1,Math.min(80,apex._speed));}apex._accDc=0;apex._accDt=0;}}else{apex._accDc=0;apex._accDt=0;}}apex._clkWall=_tw;apex._running=(_pv!=null&&_nv<_pv-250);apex.clockMs=_nv;apex.clockAnchor=_tw;}
     else if(key==='title1')apex.title=val;
     else if(key==='title2')apex.title2=val;
     else if(key==='track')apex.track=val;
@@ -1993,7 +2017,7 @@
     const numBest={};list.forEach(r=>{const id=r.no?+r.no:null;if(!id)return;const v=r.laps.filter(x=>x>0);if(!v.length)return;const med=[...v].sort((a,b)=>a-b)[Math.floor(v.length/2)];const cl=v.filter(x=>x<=med*1.25);const best=Math.min(...(cl.length?cl:v));if(numBest[id]==null||best<numBest[id])numBest[id]=best;});
     const bv=Object.values(numBest),nMin=bv.length?Math.min(...bv):0,nMax=bv.length?Math.max(...bv):1;
     // Bloque H: intervalo al de delante = gap al líder[i] − gap al líder[i-1] (por posición), para feeds sin columna de intervalo
-    {const _byPos=list.slice().sort((a,b)=>(a.pos||9999)-(b.pos||9999));let _pg=0;_byPos.forEach((r,i)=>{if(i===0){r._intAhead=null;_pg=0;return;}const g=apexToSec((r.cells[bt['gap']]||{}).v||'');r._intAhead=(g!=null)?Math.max(0,g-_pg):null;if(g!=null)_pg=g;});}
+    {const _byPos=list.slice().sort((a,b)=>(a.pos||9999)-(b.pos||9999));let _pg=0;_byPos.forEach((r,i)=>{if(i===0){r._intAhead=null;_pg=0;return;}const g=apexToSec((r.cells[bt['gap']]||{}).v||'');r._intAhead=(g!=null)?Math.max(0,g-_pg):null;if(g!=null)_pg=g;});_byPos.forEach((r,i)=>{r._intBehind=(i<_byPos.length-1)?_byPos[i+1]._intAhead:null;});}
     list.forEach(r=>{let t=apex.map[r.id];
       if(!t){t={dorsal:r.no?+r.no:r.pos,name:r.team||r.no||('#'+r.pos),kart:r.no?+r.no:r.pos,drivers:[{name:r.driver||'—',dscore:5,pct:null,man:null,lock:false,samples:[],resid:null}],di:0,laps:0,lapSum:0,lapCnt:0,best:Infinity,worst:0,last:0,target:vRef,lapT:0,stintStart:(apex._greenNow||now),plan:0,stops:0,inPit:false,pitStart:now,pitDur:0,assigned:true,waitKart:false,you:false,penalties:[],history:[],lapLog:[],usedKarts:[],stintLaps:[],releaseAt:0};apex.map[r.id]=t;teams.push(t);}
       t.name=r.team||t.name;if(r.no){t.dorsal=+r.no;t.kart=+r.no;}if(t.drivers[0]&&r.driver)t.drivers[0].name=r.driver;
@@ -2005,7 +2029,7 @@
       const otrAvail=!!(bt['otr']&&r.otrCls);
       const staAvail=!!(bt['sta']&&r.staCls);
       if(!isNaN(pit)){ if(t._lastStops==null){t._lastStops=pit;}
-        else if(pit>t._lastStops){ if(t.history){t.history.push({type:'pit'});if(t.history.length>80)t.history.shift();} if(t.you)say('Parada en boxes registrada'); if(!staAvail&&!otrAvail){ t.pitStart=now; t._pitStartLap=t.laps; } t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; }
+        else if(pit>t._lastStops){ if(t.history){t.history.push({type:'pit'});if(t.history.length>80)t.history.shift();} if(t.you)say('Parada en boxes registrada'); if(!staAvail&&!otrAvail){ t.pitStart=now; t._pitStartLap=t.laps; } t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; if(mode!=='auto'&&t.kart){ holding.push({kart:t.kart,dorsal:t.dorsal,name:t.name,pitAt:now}); } }
         t._lastStops=pit; t.stops=pit; }
       if(staAvail){                                                  // BOXES por columna de ESTADO: 'si' = en boxes (parada real), 'so'/otro = fuera
         const nowIn=(r.staCls==='si');
@@ -2027,7 +2051,7 @@
       // cruce de meta detectado por el contador de vueltas (fiable): aparece en óvalo y suma vuelta
       if(r.lapTotal!=null){
         if(t._lastLapTotal==null&&r.lapTotal>1){t._lastLapTotal=r.lapTotal;t._lapWall=performance.now();}
-        else if(r.lapTotal>(t._lastLapTotal||0)){t._lastLapTotal=r.lapTotal;t._seen=true;t._lapWall=performance.now();if(!t.inPit){t._flashAt=performance.now();t._pulse=true;}if(!apex._live){apex._live=true;teams.forEach(x=>{x.stintStart=now;});}const lt=t.last||vRef;t.lapSum+=lt;t.lapCnt++;t.lapLog.push({lap:r.lapTotal,t:lt,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(lt);if(t.stintLaps.length>200)t.stintLaps.shift();if(lt>0){r.laps.push(lt);if(r.laps.length>500)r.laps.shift();} {const _kid=t.kart; if(_kid){ const _K=karts[_kid-1]||(karts[_kid-1]={id:_kid,samples:[],pct:null,prov:true,stints:[],rawLaps:[]}); (_K.rawLaps||(_K.rawLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead)}); if(_K.rawLaps.length>400)_K.rawLaps.shift(); (t.stintRaw||(t.stintRaw=[])).push({t:lt,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead)}); if(t.stintRaw.length>60)t.stintRaw.shift(); }}}
+        else if(r.lapTotal>(t._lastLapTotal||0)){t._lastLapTotal=r.lapTotal;t._seen=true;t._lapWall=performance.now();if(!t.inPit){t._flashAt=performance.now();t._pulse=true;}if(!apex._live){apex._live=true;teams.forEach(x=>{x.stintStart=now;});}const lt=t.last||vRef;t.lapSum+=lt;t.lapCnt++;t.lapLog.push({lap:r.lapTotal,t:lt,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(lt);if(t.stintLaps.length>200)t.stintLaps.shift();if(lt>0){r.laps.push(lt);if(r.laps.length>500)r.laps.shift();} {const _kid=t.kart; if(_kid){ const _K=karts[_kid-1]||(karts[_kid-1]={id:_kid,samples:[],pct:null,prov:true,stints:[],rawLaps:[]}); (_K.rawLaps||(_K.rawLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind}); if(_K.rawLaps.length>400)_K.rawLaps.shift(); (t.stintRaw||(t.stintRaw=[])).push({t:lt,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind}); if(t.stintRaw.length>60)t.stintRaw.shift(); }}}
       }
       // duración de vuelta para el óvalo: media de vueltas LIMPIAS (ignora vueltas de boxes/anómalas)
       {const cl=r.laps.filter(x=>x>0);let dur=0;if(cl.length){const so=[...cl].sort((a,b)=>a-b),med=so[so.length>>1],good=cl.filter(x=>x<=med*1.3);dur=good.reduce((a,b)=>a+b,0)/good.length;}t.target=dur||(t.best<Infinity?t.best:0)||vRef;}
