@@ -118,6 +118,9 @@
   /* en modo mover, nada de dentro responde: el clic solo sirve para mover el panel */
   body.ledit [data-rk] *{pointer-events:none!important;user-select:none}
   body.ledit [data-rk] .rsz{pointer-events:auto!important}
+  /* estos SIEMPRE responden, si no te quedarias encerrado en el modo edicion */
+  body.ledit .keepon{pointer-events:auto!important;cursor:pointer}
+  body.ledit #ledit{outline:2px solid var(--cyan);outline-offset:1px;border-radius:7px}
   .rsz{display:none;position:absolute;z-index:9}
   body.ledit .rsz{display:block}
   .rsz.n{top:-4px;left:10px;right:10px;height:9px;cursor:ns-resize}
@@ -195,9 +198,6 @@
 
   .side{display:flex;flex-direction:column}
   .trkwrap{display:flex;flex-direction:column;gap:10px;padding:8px 2px 2px;flex:1 1 auto;min-height:0}
-  .trkleg{display:flex;flex-direction:column;gap:7px;font-size:10.5px;color:#aeb8c6;line-height:1.25}
-  .trkleg .li{display:flex;align-items:center;gap:7px}
-  .trknote{font-size:9.5px;color:#7b8696;line-height:1.35;margin-top:2px}
   tr.lprow td:first-child{box-shadow:inset 3px 0 0 0 var(--grp,transparent)}
   tr.lprow.ggiver td:first-child{box-shadow:none;position:relative}
   tr.lprow.ggiver td:first-child::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:5px;border:1.5px solid var(--grp,transparent);background:transparent;box-sizing:border-box;border-radius:2px}
@@ -612,7 +612,7 @@
       <button class="gear" id="gear" aria-label="Ajustes">⚙</button>
       <button class="ui" id="btnkalgo" title="Configuración del algoritmo">🏎️</button><button class="ui" id="btnhelp" title="Cómo funciona el algoritmo: explicación completa">ℹ️</button>
       <button class="ui" id="apexbtn" title="Datos en vivo de Apex Timing">🛰</button>
-      <button class="ui" id="ledit" title="Mover y redimensionar paneles: arrastra DENTRO del panel para moverlo, o desde cualquier BORDE para cambiar su tamaño. Mientras esté activo, los botones de dentro no responden.">✥</button>
+      <button class="ui keepon" id="ledit" title="Mover y redimensionar paneles: arrastra DENTRO del panel para moverlo, o desde cualquier BORDE para cambiar su tamaño. Mientras esté activo, los botones de dentro no responden.">✥</button>
       <button class="ui" id="gohome" title="Circuitos">⌂</button>
     </div>
     <div class="clock"><div class="sessind" id="sessind" style="display:none"><span class="sessicon" id="sessicon">🏁</span><span class="sema" id="sema"><i></i><i></i><i></i></span></div><div class="clkcol"><div class="t" id="clock">0:00:00</div><div class="s" id="clocklbl">Restante</div></div><div class="apexlive" id="apexlive" style="display:none"><span class="dot"></span><span id="apexlivetxt">En vivo</span></div></div>
@@ -655,14 +655,7 @@
             <path id="trkpath" d="M78 260 L78 472 A18 18 0 0 1 42 472 L42 48 A18 18 0 0 1 78 48 L78 260 Z" fill="none" stroke="#283342" stroke-width="11" stroke-linejoin="round"/>
             <path id="trkpit" d="" fill="none" stroke="#2a3342" stroke-width="7" stroke-linecap="round" stroke-dasharray="9 6" opacity="0"/><g id="trk_pitmk"></g><g id="trk_grid"></g><g id="trk_links"></g><g id="trk_pulses"></g><g id="trk_cars"></g>
           </svg>
-          <div class="trkleg">
-            <div class="li"><svg width="24" height="18"><circle cx="10" cy="9" r="8" fill="#e9eef6" stroke="#9aa7b6" stroke-width="1.4"/></svg><span style="color:#e9eef6">en solitario</span></div>
-            <div class="li"><svg width="24" height="18"><circle cx="10" cy="9" r="8" fill="#9aa7b6" stroke="#0a0e14" stroke-width="1.4"/></svg><span>en grupo</span></div>
-            <div class="li"><svg width="24" height="18"><polygon points="16,9 4,2.5 4,15.5" fill="#9aa7b6" stroke="#0a0e14" stroke-width="1.4"/></svg><span>cogiendo rebufo</span></div>
-            <div class="li"><svg width="24" height="18"><circle cx="10" cy="9" r="8" fill="#e9eef6" stroke="#9aa7b6" stroke-width="3"/></svg><span>solo da rebufo</span></div>
-            <div class="li"><svg width="24" height="18"><circle cx="10" cy="9" r="8" fill="none" stroke="#7fd8ff" stroke-width="1.8"/></svg><span style="color:#9fdcff">cruza línea</span></div>
-            <div class="trknote">Los grupos usan los MISMOS umbrales que la vuelta limpia (ajustables en 🏎️ Algoritmo): <b>Hueco mín. por delante</b> = hasta ahí coges rebufo del de delante; <b>Hueco mín. por detrás</b> = hasta ahí te empuja el de detrás. <b>Relleno</b> = se beneficia · <b>hueco con contorno</b> = no se beneficia pero da rebufo al de atrás · <b>blanco</b> = va solo. Cada grupo lleva su color, el mismo que une sus filas en el live timing.</div>
-          </div>
+          
         </div>
       </div>
     </div>
@@ -1082,6 +1075,21 @@
   }
   // Instante PRECISO del ultimo paso por meta: el reloj se avanza con el tiempo de vuelta que
   // da Apex (milesimas) y el desfase se afina promediando -> el retraso del feed se cancela.
+  // Ritmo reciente PROPIO de cada equipo: media de sus ultimas N vueltas (sin las de boxes).
+  // Se adapta solo a la lluvia y a la evolucion de la pista.
+  const DISP_N=5;
+  function pace5(t){ const lg=t&&t.lapLog; if(!lg||!lg.length)return t&&t.target||0;
+    // NO se usa un porcentaje: con una tromba de agua el ritmo puede empeorar muchisimo y seria
+    // erroneo descartar vueltas buenas. Se descartan por lo que SON: las vueltas de boxes.
+    const u=[];
+    for(let i=lg.length-1;i>=0&&u.length<DISP_N;i--){
+      const l=lg[i]; if(!l||!(l.t>3))continue;
+      if(l.inlap)continue;                                  // vuelta de ENTRADA a boxes
+      if(l.ln!=null&&l.ln<=2)continue;                      // la de BOX (si cuenta) y las DOS de salida
+      u.push(l.t);
+    }
+    if(!u.length)return t.target||0;
+    return u.reduce((a,b)=>a+b,0)/u.length; }
   function crossT(t){ if(!t)return null; if(t._cT!=null)return t._cT+(t._cAdj||0); return (t._lastCross!=null?t._lastCross:null); }
   let _paceSeen=0,_sessSig=null,_sessNotice=0,_askReset=0;
   // Borra SOLO las notas de los karts y el sorteo (lo que se conserva entre sesiones).
@@ -1260,7 +1268,7 @@
   }; }
   function swap(t,r){r=clamp(r|0,0,rowsN-1);if(!rows[r]||!rows[r].length){r=rows.findIndex(x=>x&&x.length);if(r<0)return;}r=nrRow(t,r);if(!rows[r]||!rows[r].length){r=rows.findIndex(x=>x&&x.length);if(r<0)return;}const inId=rows[r].shift();if(karts[t.kart-1])karts[t.kart-1].drop={dorsal:t.dorsal,name:t.name};rows[r].push(t.kart);pushUsed(t,t.kart);t.kart=inId;assignFlush(t,inId);pushUsed(t,inId);t.stops++;t.assigned=true;if(noRepeat||Math.random()<0.5)t.di=(t.di+1)%t.drivers.length;}
   function assign(d,r){const t=teams.find(x=>x.dorsal===d);if(!t||t.assigned)return;swap(t,r);const i=pending.indexOf(d);if(i>=0)pending.splice(i,1);}
-  function apexPitIn(t){ if(!t._pitHeld){ try{ if(t._lastLapRef)t._lastLapRef.inlap=true; }catch(_){} t._stintLapN=0; t._pitInLaps=t.laps; if(mode!=='auto' && t.kart){ holding.push({kart:t.kart,dorsal:t.dorsal,name:t.name,pitAt:now,seq:++_pitCounter}); t.waitKart=true; t.placed=false; t.assigned=false; t.kart=0; t.exitUnassigned=false; } } t._pitHeld=true; }
+  function apexPitIn(t){ if(!t._pitHeld){ try{ if(t._lastLapRef)t._lastLapRef.inlap=true; }catch(_){} try{ const _ll=t.lapLog&&t.lapLog[t.lapLog.length-1]; if(_ll)_ll.inlap=true; }catch(_){} t._stintLapN=0; t._pitInLaps=t.laps; if(mode!=='auto' && t.kart){ holding.push({kart:t.kart,dorsal:t.dorsal,name:t.name,pitAt:now,seq:++_pitCounter}); t.waitKart=true; t.placed=false; t.assigned=false; t.kart=0; t.exitUnassigned=false; } } t._pitHeld=true; }
   function apexTurnClose(t){ if(t.stintStart==null)return; const dur=now-t.stintStart; if(!(dur>0))return; const _sl=t.stintLaps||[]; const _avg=_sl.length?_sl.reduce((a,b)=>a+b,0)/_sl.length:null; (t.history||(t.history=[])).push({type:'stint',kart:t.kart,dur,avg:_avg}); if(t.history.length>80)t.history.shift(); }
   function apexPitClose(t,dur){ if(dur==null)dur=(t.pitStart?now-t.pitStart:0); (t.history||(t.history=[])).push({type:'pit',dur:Math.max(0,dur)}); if(t.history.length>80)t.history.shift(); }
 
@@ -1467,10 +1475,21 @@
       // Asi el orden en pista es el orden real de cruce: nadie adelanta a mitad de trazado.
       const _lrs=field.map(t=>t.target).filter(v=>v>5).sort((a,b)=>a-b);
       const _lref=_lrs.length?_lrs[_lrs.length>>1]:0;
-      field.forEach(t=>{
-        t._disp=(_lref>0&&crossT(t)!=null)?(((now-crossT(t))/_lref)%1+1)%1              // por cruces reales (reloj preciso)
-                                            :((t.lapT/(t.target||1))%1+1)%1;            // respaldo
-        if(t._pulse){const mp=trkP(pf(0));trkPulses.push({x:mp.x,y:mp.y,t0:tnow});t._pulse=false;}});
+      // Cada kart avanza con SU ritmo reciente (ultimas vueltas), asi refleja la lluvia y la pista.
+      // Pero el ORDEN se respeta: el que cruzo antes va delante y nadie le pasa a mitad de trazado.
+      {
+        const ord=field.filter(t=>crossT(t)!=null).sort((a,b)=>crossT(a)-crossT(b));   // el que cruzo antes, mas adelantado
+        let prev=null;
+        ord.forEach(t=>{
+          const p=pace5(t)||t.target||_lref||1;
+          let ph=(now-crossT(t))/p;
+          if(!(ph>=0))ph=0; if(ph>0.999)ph=0.999;                    // si ya deberia haber cruzado, espera en la linea
+          if(prev!=null&&ph>=prev)ph=Math.max(0,prev-1e-4);          // no adelanta a mitad de vuelta
+          t._disp=ph; prev=ph;
+        });
+        field.forEach(t=>{ if(crossT(t)==null)t._disp=((t.lapT/(t.target||1))%1+1)%1;   // respaldo
+          if(t._pulse){const mp=trkP(pf(0));trkPulses.push({x:mp.x,y:mp.y,t0:tnow});t._pulse=false;}});
+      }
       const dl=field.map(t=>({t,f:pf(t._disp)})).sort((a,b)=>a.f-b.f),nn=dl.length,minSep=(2*11+1)/_trk.L;
       if(nn){for(let it=0;it<3;it++){for(let i=0;i<nn;i++){const a=dl[i],b=dl[(i+1)%nn];let gap=b.f-a.f;if(i===nn-1)gap+=1;if(gap<minSep){const push=(minSep-gap)/2;a.f-=push;b.f+=push;}}}dl.forEach(d=>d.t._disp=((d.f%1)+1)%1);}
       let lkA='';
@@ -2410,6 +2429,7 @@
     // MOVER arrastrando desde cualquier punto del panel
     el.addEventListener('pointerdown',e=>{
       if(!ledit)return;
+      if(e.target.closest&&e.target.closest('.keepon'))return;   // botones que siguen funcionando
       if(e.target.closest&&e.target.closest('.rsz'))return;      // los bordes son para redimensionar
       e.preventDefault();e.stopPropagation(); if(!freeform)freezeLayout();
       const gr=gridEl.getBoundingClientRect(), r=el.getBoundingClientRect();
@@ -2420,11 +2440,13 @@
       document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);});
   });
   {const topEl=rkEls[0];if(topEl){const g=document.createElement('div');g.className='movegrip';g.title='Arrastra para mover la barra superior';topEl.appendChild(g);
-    topEl.addEventListener('pointerdown',e=>{if(!ledit)return;if(e.target.closest&&e.target.closest('.rsz'))return;e.preventDefault();e.stopPropagation();if(!freeform)freezeLayout();const p=cfg.panels['rk0']=cfg.panels['rk0']||{};const sx=e.clientX,sy=e.clientY,btx=p.tx||0,bty=p.ty||0;topEl.classList.add('moving');
+    topEl.addEventListener('pointerdown',e=>{if(!ledit)return;if(e.target.closest&&(e.target.closest('.keepon')||e.target.closest('.rsz')))return;e.preventDefault();e.stopPropagation();if(!freeform)freezeLayout();const p=cfg.panels['rk0']=cfg.panels['rk0']||{};const sx=e.clientX,sy=e.clientY,btx=p.tx||0,bty=p.ty||0;topEl.classList.add('moving');
       const mv=ev=>{p.tx=Math.round(btx+(ev.clientX-sx));p.ty=Math.round(bty+(ev.clientY-sy));topEl.style.transform='translate('+p.tx+'px,'+p.ty+'px)';};
       const up=()=>{topEl.classList.remove('moving');document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);savePanelCfg();};
       document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);});}}
-  {const b=document.getElementById('ledit');if(b)b.addEventListener('click',()=>{ledit=!ledit;document.body.classList.toggle('ledit',ledit);b.classList.toggle('on',ledit);});}
+  {const b=document.getElementById('ledit');if(b)b.addEventListener('click',()=>{ledit=!ledit;document.body.classList.toggle('ledit',ledit);b.classList.toggle('on',ledit);});
+   // salida de emergencia: Escape siempre sale del modo edicion
+   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&ledit){ ledit=false;document.body.classList.remove('ledit');if(b)b.classList.remove('on'); } });}
   {const r=document.getElementById('ledreset');if(r)r.addEventListener('click',()=>{rkEls.forEach(el=>{if(el){el.style.position='';el.style.left='';el.style.top='';el.style.width='';el.style.height='';el.style.transform='';el.style.minHeight='';el.style.overflow='';}});gridEl.classList.remove('freeform');gridEl.style.position='';gridEl.style.height='';cfg=JSON.parse(JSON.stringify(DEF_CFG));freeform=false;if(typeof DEF_CFG.boxW==='number')boxW=DEF_CFG.boxW;if(typeof DEF_CFG.boxH==='number')boxH=DEF_CFG.boxH;if(Array.isArray(DEF_CFG.order)){const f=DEF_CFG.order.filter(id=>COLS[id]);if(f.length)colOrder=f;}hiddenCols=new Set((DEF_CFG.hidden||[]).filter(id=>COLS[id]));if(boxesEl){boxesEl.style.setProperty('--bw',boxW+'px');boxesEl.style.setProperty('--bh',boxH+'px');}_reflowSig='';applyLayout();renderHead();renderColVis();render();savePanelCfg();saveLayout();});}
   function exportCfg(){return JSON.stringify({freeform:cfg.freeform,panels:cfg.panels,boxW,boxH,hidden:[...hiddenCols],order:colOrder});}
   function applyImported(o){if(!o)return;if(typeof o.boxW==='number')boxW=clamp(o.boxW,52,240);if(typeof o.boxH==='number')boxH=clamp(o.boxH,38,170);if(Array.isArray(o.order)){const f=o.order.filter(id=>COLS[id]);if(f.length)colOrder=f;}if(Array.isArray(o.hidden))hiddenCols=new Set(o.hidden.filter(id=>COLS[id]));
@@ -2877,7 +2899,7 @@
       // cruce de meta detectado por el contador de vueltas (fiable): aparece en óvalo y suma vuelta
       if(r.lapTotal!=null){
         if(t._lastLapTotal==null&&r.lapTotal>1){t._lastLapTotal=r.lapTotal;t._lapWall=performance.now();}
-        else if(r.lapTotal>(t._lastLapTotal||0)){const _prev=t._lastLapTotal||0;const _gap=r.lapTotal-_prev;t._lastLapTotal=r.lapTotal;t._seen=true;if(t._pitOutAt!=null){ pitSample('out',t,now-t._pitOutAt); t._pitOutAt=null; if(t._lapsPitIn!=null){ pitLapDelta(t.laps-t._lapsPitIn); t._lapsPitIn=null; } }t._lastCross=now;t._lastCrossLaps=t.laps;{const _lt0=apexToSec(r.lastTxt||'');if(t._cT==null||_gap>1||!(_lt0>3)){t._cT=now;t._cAdj=0;}else{t._cT+=_lt0;t._cAdj=(t._cAdj||0)+(now-(t._cT+(t._cAdj||0)))*0.15;}}if(sessionKind()==='carrera'){if(t.dorsal===_refDorsal){const _nw=performance.now();for(let _ci=0;_ci<teams.length;_ci++){const _x=teams[_ci];if(_x!==t&&!(_x._lapWall&&(_nw-_x._lapWall)<2500))_x._nameGreen=false;}}t._nameGreen=true;}t._lapWall=performance.now();if(!t.inPit){t._flashAt=performance.now();t._pulse=true;}if(!apex._live){apex._live=true;}const lt=t.last||vRef;if(_gap>1&&_prev>0){const _est=(t.lapCnt>0?t.lapSum/t.lapCnt:lt);for(let _g=1;_g<_gap;_g++){t.lapSum+=_est;t.lapCnt++;t.lapLog.push({lap:_prev+_g,t:_est,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name,est:true});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(_est);if(t.stintLaps.length>200)t.stintLaps.shift();}apex._gaps=(apex._gaps||0)+(_gap-1);}t.lapSum+=lt;t.lapCnt++;t.lapLog.push({lap:r.lapTotal,t:lt,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(lt);if(t.stintLaps.length>200)t.stintLaps.shift();if(lt>0){r.laps.push(lt);if(r.laps.length>500)r.laps.shift();} {const _kid=t.kart; if(_kid){ const _K=karts[_kid-1]||(karts[_kid-1]={id:_kid,samples:[],pct:null,prov:true,stints:[],rawLaps:[]}); (_K.rawLaps||(_K.rawLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind,gap0:t._lineGap,gapB0:t._lineGapB,st:(t.stops||0),kart:id,ln:(t._stintLapN=(t._stintLapN||0)+1),pace:racePace()}); t._lastLapRef=_K.rawLaps[_K.rawLaps.length-1]; if(_K.rawLaps.length>400)_K.rawLaps.shift(); t._lineGap=(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead); t._lineGapB=r._intBehind; /* hueco en meta = apertura de la vuelta siguiente */ (t.stintRaw||(t.stintRaw=[])).push({t:lt,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind,gap0:t._lineGap,gapB0:t._lineGapB}); if(t.stintRaw.length>60)t.stintRaw.shift(); } else if(t.exitUnassigned){ (t._orphanLaps||(t._orphanLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind,gap0:t._lineGap,gapB0:t._lineGapB}); if(t._orphanLaps.length>400)t._orphanLaps.shift(); }}}
+        else if(r.lapTotal>(t._lastLapTotal||0)){const _prev=t._lastLapTotal||0;const _gap=r.lapTotal-_prev;t._lastLapTotal=r.lapTotal;t._seen=true;if(t._pitOutAt!=null){ pitSample('out',t,now-t._pitOutAt); t._pitOutAt=null; if(t._lapsPitIn!=null){ pitLapDelta(t.laps-t._lapsPitIn); t._lapsPitIn=null; } }t._lastCross=now;t._lastCrossLaps=t.laps;{const _lt0=apexToSec(r.lastTxt||'');if(t._cT==null||_gap>1||!(_lt0>3)){t._cT=now;t._cAdj=0;}else{t._cT+=_lt0;t._cAdj=(t._cAdj||0)+(now-(t._cT+(t._cAdj||0)))*0.15;}}if(sessionKind()==='carrera'){if(t.dorsal===_refDorsal){const _nw=performance.now();for(let _ci=0;_ci<teams.length;_ci++){const _x=teams[_ci];if(_x!==t&&!(_x._lapWall&&(_nw-_x._lapWall)<2500))_x._nameGreen=false;}}t._nameGreen=true;}t._lapWall=performance.now();if(!t.inPit){t._flashAt=performance.now();t._pulse=true;}if(!apex._live){apex._live=true;}const lt=t.last||vRef;if(_gap>1&&_prev>0){const _est=(t.lapCnt>0?t.lapSum/t.lapCnt:lt);for(let _g=1;_g<_gap;_g++){t.lapSum+=_est;t.lapCnt++;t.lapLog.push({lap:_prev+_g,t:_est,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name,est:true,ln:((t._stintLapN||0)+1),st:(t.stops||0)});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(_est);if(t.stintLaps.length>200)t.stintLaps.shift();}apex._gaps=(apex._gaps||0)+(_gap-1);}t.lapSum+=lt;t.lapCnt++;t.lapLog.push({lap:r.lapTotal,t:lt,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name,ln:((t._stintLapN||0)+1),st:(t.stops||0)});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(lt);if(t.stintLaps.length>200)t.stintLaps.shift();if(lt>0){r.laps.push(lt);if(r.laps.length>500)r.laps.shift();} {const _kid=t.kart; if(_kid){ const _K=karts[_kid-1]||(karts[_kid-1]={id:_kid,samples:[],pct:null,prov:true,stints:[],rawLaps:[]}); (_K.rawLaps||(_K.rawLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind,gap0:t._lineGap,gapB0:t._lineGapB,st:(t.stops||0),kart:id,ln:(t._stintLapN=(t._stintLapN||0)+1),pace:racePace()}); t._lastLapRef=_K.rawLaps[_K.rawLaps.length-1]; if(_K.rawLaps.length>400)_K.rawLaps.shift(); t._lineGap=(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead); t._lineGapB=r._intBehind; /* hueco en meta = apertura de la vuelta siguiente */ (t.stintRaw||(t.stintRaw=[])).push({t:lt,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind,gap0:t._lineGap,gapB0:t._lineGapB}); if(t.stintRaw.length>60)t.stintRaw.shift(); } else if(t.exitUnassigned){ (t._orphanLaps||(t._orphanLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind,gap0:t._lineGap,gapB0:t._lineGapB}); if(t._orphanLaps.length>400)t._orphanLaps.shift(); }}}
       }
       // duración de vuelta para el óvalo: media de vueltas LIMPIAS (ignora vueltas de boxes/anómalas)
       {const cl=r.laps.filter(x=>x>0);let dur=0;if(cl.length){const so=[...cl].sort((a,b)=>a-b),med=so[so.length>>1],good=cl.filter(x=>x<=med*1.3);dur=good.reduce((a,b)=>a+b,0)/good.length;}t.target=dur||(t.best<Infinity?t.best:0)||vRef;}
