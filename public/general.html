@@ -13,11 +13,21 @@
   *{box-sizing:border-box}
   html{overflow-y:scroll;scrollbar-gutter:stable}
   html,body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans)}
-  body{padding:8px 14px 14px;min-height:100vh}
-  .wrap{max-width:1580px;margin:0 auto}
+  body{padding:8px 14px 14px var(--wrapleft,5px);min-height:100vh}
+  /* El gestor se ancla a la IZQUIERDA: al reducir zoom, todo el hueco sobrante aparece a la derecha */
+  .wrap{max-width:var(--wrapmax,1580px);margin:0;border-right:1px solid var(--line);padding-right:12px}
 
   .top{display:flex;flex-direction:column;gap:6px;position:relative;
-       background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:12px;padding:7px 16px 9px}
+       background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:12px;padding:7px 16px 9px;transition:background .4s,border-color .4s,box-shadow .4s}
+  /* PISTA LENTA / LLUVIA: barra superior azulada y muy visible */
+  .top.wetbar{background:linear-gradient(180deg,#12314d,#0e2740);border-color:#3d9be0;box-shadow:0 0 0 1px rgba(61,155,224,.35),0 8px 26px rgba(23,90,150,.30)}
+  .top.wetbar .basebox{border-color:#2f6f9e;background:rgba(20,60,95,.55)}
+  .top.wetbar .ui{border-color:#2f6f9e}
+  .wetbig{display:none;align-items:center;gap:8px;font-size:22px;line-height:1;user-select:none}
+  .top.wetbar .wetbig{display:inline-flex}
+  .wetbig b{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#8fd0ff;font-weight:800}
+  .wetbig .rd{width:9px;height:9px;border-radius:50%;background:#3d9be0;box-shadow:0 0 9px #3d9be0;animation:wetpulse 1.5s ease-in-out infinite}
+  @keyframes wetpulse{0%,100%{opacity:1}50%{opacity:.25}}
   .brand{display:flex;flex-direction:column;line-height:1}
   .brand b{font-size:15px;letter-spacing:.18em;font-weight:800}
   .brand span{font-size:10.5px;letter-spacing:.16em;color:var(--dim);margin-top:4px;text-transform:uppercase}
@@ -68,8 +78,25 @@
   .teampick.open{display:block}
   .teampick label{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:12.5px;cursor:pointer}
   .teampick label i{width:12px;height:12px;border-radius:3px;flex:none}
-  .menu{position:absolute;top:60px;right:16px;z-index:30;width:280px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;box-shadow:0 18px 40px rgba(0,0,0,.5);display:none}
+  .menu{position:absolute;top:60px;right:16px;z-index:30;width:360px;max-width:calc(100vw - 24px);max-height:calc(100vh - 90px);overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;box-shadow:0 18px 40px rgba(0,0,0,.5);display:none}
   .menu.open{display:block}
+  .helpwrap{position:fixed;inset:0;background:rgba(4,7,11,.72);z-index:120;display:none;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto}
+  .helpwrap.open{display:flex}
+  .helpbox{width:min(860px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  .helphead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);border-radius:14px 14px 0 0;z-index:2}
+  .helphead b{font-size:14px;letter-spacing:.04em}
+  .helpbody{padding:6px 18px 20px;font-size:13px;line-height:1.62;color:var(--txt)}
+  .helpbody h3{margin:20px 0 6px;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);border-bottom:1px solid #1b212c;padding-bottom:5px}
+  .helpbody h4{margin:14px 0 4px;font-size:12.5px;color:var(--amber)}
+  .helpbody p{margin:6px 0}
+  .helpbody ul{margin:6px 0;padding-left:20px} .helpbody li{margin:3px 0}
+  .helpbody code{background:#0a0e14;border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-family:var(--mono);font-size:12px;color:#9fe8f0}
+  .helpbody .warn{background:rgba(255,157,87,.10);border-left:3px solid var(--amber);padding:7px 11px;border-radius:0 6px 6px 0;margin:9px 0}
+  .helpbody .par{color:var(--dim);font-size:11.5px}
+  .menudrag{display:flex;align-items:center;gap:8px;margin:-12px -12px 8px;padding:7px 12px;border-bottom:1px solid var(--line);cursor:grab;user-select:none;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);background:rgba(255,255,255,.02);border-radius:10px 10px 0 0}
+  .menudrag:active{cursor:grabbing}
+  .menu .opt .msel{min-width:0;flex:1 1 auto}
+  .menu .opt>span:last-child{min-width:0}
   .menu h3{margin:10px 0 6px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
   .menu h3:first-child{margin-top:0}
   .menu .opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;font-size:13px}
@@ -124,7 +151,7 @@
   .you .dorsal{background:var(--amber);color:#1a1304;border-color:var(--amber)}
   .flag{color:var(--red);margin-right:5px}
   .tname{cursor:pointer;border-bottom:1px dotted var(--dim2)}
-  .tname.xgreen{color:#37d67a;border-bottom-color:#37d67a;text-shadow:0 0 6px rgba(55,214,122,.45)}
+  .xgdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#37d67a;margin-right:6px;vertical-align:middle;box-shadow:0 0 5px rgba(55,214,122,.75)}
   tr.hov .tname{color:var(--cyan);border-color:var(--cyan)}
   .drv{display:inline-flex;align-items:center;gap:7px}
   .dchip{font-family:var(--mono);font-size:11px;min-width:22px;text-align:center;padding:1px 4px;border-radius:4px;background:#0c1016;border:1px solid #0a0d12}
@@ -151,6 +178,8 @@
   .trkleg .li{display:flex;align-items:center;gap:7px}
   .trknote{font-size:9.5px;color:#7b8696;line-height:1.35;margin-top:2px}
   tr.lprow td:first-child{box-shadow:inset 3px 0 0 0 var(--grp,transparent)}
+  tr.lprow.ggiver td:first-child{box-shadow:none;position:relative}
+  tr.lprow.ggiver td:first-child::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:5px;border:1.5px solid var(--grp,transparent);background:transparent;box-sizing:border-box;border-radius:2px}
   .ltpanel{position:relative}
   .ltpanel .scroll{padding-left:42px}
   .brk{position:absolute;left:0;top:0;width:42px;height:100%;pointer-events:none;z-index:3;overflow:visible}
@@ -199,6 +228,16 @@
   .boxwrap:not(.editing) .sortrsz,.boxwrap:not(.editing) .rsz{display:none}
 
   .boxbelow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;margin-top:10px}
+  /* Pieza B: los dos paneles al MISMO lado, lado a lado */
+  .boxwrap.samey{display:grid;grid-template-columns:1fr 1fr;align-items:start}
+  .boxwrap.samey>.boxstage{grid-column:1/-1;grid-row:1}
+  .boxwrap.samey>#bx_bot{grid-column:1;grid-row:2}
+  .boxwrap.samey>#bx_top{grid-column:2;grid-row:2}
+  .boxwrap.samey>#editnote{grid-column:1/-1;grid-row:3}
+  .boxwrap.samey.rotw>.boxstage{grid-row:2}
+  .boxwrap.samey.rotw>#bx_bot{grid-row:1}
+  .boxwrap.samey.rotw>#bx_top{grid-row:1}
+  .boxwrap.samey>#bx_top:empty,.boxwrap.samey>#bx_bot:empty{min-height:0}
   .boxbelow>#bx_top{flex:1 1 240px;min-width:0;display:flex;flex-direction:column}
   .boxbelow>#bx_bot{flex:1 1 240px;min-width:0;display:flex;flex-direction:column}
   .boxbelow.est{display:block}
@@ -315,6 +354,32 @@
   .segturno .sl{font-size:11px;color:var(--dim)}
   .segturno .sv{font-family:var(--mono);font-size:22px;font-weight:700}
   .semstints{margin-top:8px;max-height:230px;overflow-y:auto;border-top:1px solid #1b212c;padding-top:2px}
+  /* Cuadro de turnos/paradas en VERTICAL (como el gestor de boxes) */
+  .semwrap{display:flex;gap:10px;min-height:0;flex:1 1 auto;margin-top:8px;border-top:1px solid #1b212c;padding-top:8px}
+  /* el scroll SOLO aparece si los turnos no caben en el alto disponible */
+  .sstcol{width:196px;flex:0 0 auto;min-height:0;max-height:100%;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:4px;padding-right:10px;border-right:1px solid #1b212c;scrollbar-gutter:stable}
+  .sstcol::-webkit-scrollbar{width:8px}
+  .sstcol::-webkit-scrollbar-thumb{background:#2a3342;border-radius:4px}
+  .sstcol::-webkit-scrollbar-track{background:transparent}
+  .sem{display:flex;flex-direction:column;min-height:0}
+  .seminfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+  .sstrow{display:flex;align-items:center;gap:5px}
+  .sstn{min-width:17px;text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--dim)}
+  .sst{flex:1;min-width:0;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12.5px;border-left:3px solid;border-radius:6px;padding:4px 7px;background:#0e131b}
+  .sst .l{font-size:10.5px;opacity:.9}
+  .sst .hdur,.sst .t{margin-left:auto;font-weight:700;white-space:nowrap}
+  .sstrow.ehrow{cursor:pointer} .sstrow.ehrow:hover .sst{filter:brightness(1.35)}
+  .sst.long{border-color:#22a866;color:#7bd88f}
+  .sst.short{border-color:#d6463f;color:#f0918a}
+  .sst.long.done{border-color:#1c5e3c;color:#5a8d6f;opacity:.78}
+  .sst.short.done{border-color:#5e2420;color:#9a6460;opacity:.78}
+  .sst.pit{border-color:#3d7bff;color:#7fb0ff;font-size:11.5px}
+  .sst.pit.done{border-color:#274a7a;color:#5a7aaa;opacity:.78}
+  .sst.balance{border-color:#ff9d57;color:#ffb987}
+  .sst.cur{border-color:#37c8d6!important;background:rgba(55,200,214,.14);box-shadow:0 0 0 1px #37c8d6 inset;color:#9fe8f0}
+  .sst.pit.cur{border-color:#3d7bff!important;background:rgba(61,123,255,.18);box-shadow:0 0 0 1px #3d7bff inset;color:#9fc8ff}
+  .sstreq{font-size:9px;color:#ff6b6b;margin-left:5px;font-weight:700}
+  .sstsep{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim2);padding:6px 0 2px;border-top:1px dashed #1b212c;margin-top:3px}
   .ehrow{cursor:pointer;border-radius:5px} .ehrow:hover{background:rgba(55,200,214,.08)}
   .ehin{width:74px;background:#0a0e14;border:1px solid var(--cyan);color:var(--txt);border-radius:5px;font-family:var(--mono);font-size:12px;padding:1px 4px;text-align:right}
   .ttrow{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);margin:12px 0 4px}
@@ -409,6 +474,19 @@
   .twait.done{opacity:.65;border-style:dashed}
   .twait .twq{font-family:var(--mono);font-weight:700;font-size:12.5px;margin-left:auto}
   .twait .twt.pitbig{margin-left:auto;font-family:var(--mono);font-weight:700;font-size:15px;color:#5fd0ff;background:rgba(61,123,255,.14);border:1px solid #2b4a7a;border-radius:7px;padding:3px 9px}
+  /* Pieza C: casillas compactas cuando los paneles van lado a lado (modo Juntar) */
+  .boxwrap.samey .twait{display:grid;grid-template-columns:auto auto 1fr;grid-template-areas:"nm nm nm" "kd q t";align-items:center;gap:2px 6px;padding:5px 8px;min-height:0;min-width:0;flex-wrap:nowrap}
+  .boxwrap.samey .twait .tn{grid-area:nm;min-width:0;width:100%;font-size:11.5px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .boxwrap.samey .twait .kd{grid-area:kd;font-size:12px;padding:0 5px}
+  .boxwrap.samey .twait .twq{grid-area:q;margin-left:0;font-size:12.5px}
+  .boxwrap.samey .twait .twt{grid-area:t;margin-left:auto;font-size:12px}
+  .boxwrap.samey .twait .twt.pitbig{grid-area:t;margin-left:auto;font-size:12.5px;padding:1px 7px}
+  .boxwrap.samey .pchip{display:grid;grid-template-columns:auto auto 1fr;grid-template-areas:"nm nm nm" "pd q t";align-items:center;gap:2px 6px;height:auto;min-height:0;min-width:0;padding:4px 8px;justify-content:start}
+  .boxwrap.samey .pchip .pinfo{display:contents}
+  .boxwrap.samey .pchip .pnm{grid-area:nm;min-width:0;width:100%;font-size:11px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .boxwrap.samey .pchip .pd{grid-area:pd;font-size:12px}
+  .boxwrap.samey .pchip .pq{grid-area:q;font-size:14px}
+  .boxwrap.samey .pchip .pt{grid-area:t;margin-left:auto}
   .twait.done.rev{opacity:.9;cursor:grab;touch-action:none;border-color:#3a4656}
   .twait.done.rev:active{cursor:grabbing}
   .kart.endslot{flex:0 0 auto;min-width:90px;height:60px;border:1.5px dashed #2a3342;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;padding:0}
@@ -475,6 +553,7 @@
   .frow input[type=text],.frow input[type=number]{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:6px 8px;width:150px;font-size:13px;font-family:var(--mono)}
   .frow input[type=text]{font-family:var(--sans);width:210px}
   .savebtn{margin-top:14px;width:100%;background:var(--cyan);color:#04222e;border:0;border-radius:8px;padding:10px;font-weight:700;cursor:pointer;font-size:14px}
+  .histwrap{max-height:260px;overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:8px;padding:2px 8px;margin-top:4px}
   .lapwrap{max-height:220px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border:1px solid var(--line);border-radius:8px;padding:4px 8px;margin-top:4px}
   .laprow{display:flex;align-items:center;gap:10px;padding:4px 0;border-top:1px solid #1b212c;font-family:var(--mono);font-size:12px}
   .laprow:first-child{border-top:0}
@@ -509,7 +588,7 @@
     <div class="ctrls">
       <label class="tog" title="Sonido y voz">🔊<input type="checkbox" id="snd" checked></label>
       <button class="gear" id="gear" aria-label="Ajustes">⚙</button>
-      <button class="ui" id="btnkalgo" title="Configuración del algoritmo">🏎️</button>
+      <button class="ui" id="btnkalgo" title="Configuración del algoritmo">🏎️</button><button class="ui" id="btnhelp" title="Cómo funciona el algoritmo: explicación completa">ℹ️</button>
       <button class="ui" id="apexbtn" title="Datos en vivo de Apex Timing">🛰</button>
       <button class="ui" id="ledit" title="Editar tamaños: arrastra la esquina de cualquier panel">✥</button>
       <button class="ui" id="gohome" title="Circuitos">⌂</button>
@@ -521,12 +600,13 @@
       <label class="basebox" title="Ganancia de rebufo (s): cuánto más rápido se rueda cogiendo rebufo. Afecta a la nota del kart.">Rebufo<button type="button" class="stepbtn" data-target="toprebufo" data-dir="-1" title="Reducir">−</button><input type="number" id="toprebufo" step="0.05" min="0" max="2"><button type="button" class="stepbtn" data-target="toprebufo" data-dir="1" title="Aumentar">+</button><span id="towrec" style="font-size:10px;color:#7c8794;margin-left:3px"></span></label>
       <label class="basebox" title="Umbral de color de la nota del kart: desde la mejor nota + este margen (s), rojo">Umbral<button type="button" class="stepbtn" data-target="topknint" data-dir="-1" title="Reducir">−</button><input type="number" id="topknint" step="0.1" min="0.2" max="3" value="0.7"><button type="button" class="stepbtn" data-target="topknint" data-dir="1" title="Aumentar">+</button></label>
       <label class="basebox" title="Margen (s) para la Estimación: si el turno va más rápido que la mediana del equipo por más de este margen, es buen kart">Margen<button type="button" class="stepbtn" data-target="topmargin" data-dir="-1" title="Reducir">−</button><input type="number" id="topmargin" step="0.05" min="0" max="1" value="0.1"><button type="button" class="stepbtn" data-target="topmargin" data-dir="1" title="Aumentar">+</button></label>
-      <label class="basebox" title="Ritmo de carrera: media de las 5 mejores últimas vueltas de equipos fiables (sin vueltas de box). Se recalcula cada vuelta.">Ritmo<span id="topracepace" style="font-family:var(--mono);font-weight:700;font-size:12px;color:#5fd0ff;margin-left:2px">—</span></label>
+      <span class="wetbig" id="wetbig" title="Pista mojada o no representativa: el rebufo está a 0"><span class="rd"></span>🌧️<b>Lluvia</b></span><button type="button" class="ui" id="trackstate" title="Estado de la pista. Clic para cambiar: automático → forzar seco → forzar lluvia" style="display:none">☔</button><label class="basebox" title="Ritmo de carrera: media de las 5 mejores últimas vueltas de equipos fiables (sin vueltas de box). Se recalcula cada vuelta.">Ritmo<span id="topracepace" style="font-family:var(--mono);font-weight:700;font-size:12px;color:#5fd0ff;margin-left:2px">—</span></label>
     </div>
     <div id="alarmflash"></div>
     <div id="alarmbox"><div id="alarmmsg">Tiempo de turno se está agotando</div><button id="silbtn">Confirmar</button></div>
 
     <div class="menu" id="menu">
+      <div class="menudrag" id="menudrag" title="Arrastra para mover este cuadro">⠿ Opciones</div>
       <h3>Reloj</h3>
       <div class="opt"><span>Tiempo</span><div class="seg small" id="set_clock"><button data-c="down" class="on">Restante</button><button data-c="up">Transcurrido</button></div></div>
       <h3>Tabla</h3>
@@ -534,8 +614,8 @@
       <div class="opt"><span>Disposición</span><div class="seg small" id="set_orient"><button data-o="horiz" class="on">Vertical</button><button data-o="vert">Horizontal</button></div></div>
       <div class="opt"><span>Etiqueta (manual)</span><div class="seg small" id="set_label"><button data-l="color" class="on">Color</button><button data-l="num">Número</button></div></div>
       <h3>Equipo y carrera</h3>
-      <div class="opt"><span>Mi equipo</span><select id="set_me" class="msel"></select></div>
-      <div class="opt"><span>Marcar retirado</span><span style="display:flex;gap:6px;align-items:center"><select id="set_retire" class="msel"></select><button class="ui" id="set_retirebtn">Retirar</button></span></div>
+      <div class="opt" title="Tu equipo: el que se muestra en el cuadro grande y para el que saltan los avisos."><span>Mi equipo</span><select id="set_me" class="msel"></select></div>
+      <div class="opt" title="Marca un equipo como retirado: deja de contar en boxes, turnos y nota."><span style="flex:0 0 auto">Marcar retirado</span><span style="display:flex;gap:6px;align-items:center;min-width:0;flex:1 1 auto"><select id="set_retire" class="msel" style="min-width:0;flex:1 1 auto"></select><button class="ui" id="set_retirebtn" style="flex:0 0 auto;white-space:nowrap">Retirar</button></span></div>
       <div class="opt" id="set_retiredrow" style="display:none"><span>Retirados (toca para reactivar)</span><span id="set_retiredlist" style="display:flex;gap:5px;flex-wrap:wrap"></span></div>
       <h3>Diseño</h3>
       <div class="opt"><span>Tamaños y posición</span><button class="ui" id="ledreset">Restablecer</button></div>
@@ -547,7 +627,7 @@
     <div class="trkcol">
       <div class="panel">
         <div class="ph"><h2>Circuito</h2>
-          <div class="r"><div class="seg small" id="trkdir"><button data-d="1" class="on" title="Horario">↻</button><button data-d="-1" title="Antihorario">↺</button></div></div></div>
+          <div class="r" style="gap:6px"><select id="trksel" class="msel" title="Elige el trazado dibujado en el editor de circuitos. «Óvalo» usa el esquema genérico."><option value="">Óvalo</option></select><div class="seg small" id="trkdir"><button data-d="1" class="on" title="Horario">↻</button><button data-d="-1" title="Antihorario">↺</button></div></div></div>
         <div class="trkwrap">
           <svg id="trk" viewBox="0 0 120 520" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block" aria-label="Circuito virtual con grupos y rebufos">
             <path id="trkpath" d="M78 260 L78 472 A18 18 0 0 1 42 472 L42 48 A18 18 0 0 1 78 48 L78 260 Z" fill="none" stroke="#283342" stroke-width="11" stroke-linejoin="round"/>
@@ -557,8 +637,9 @@
             <div class="li"><svg width="24" height="18"><circle cx="10" cy="9" r="8" fill="#e9eef6" stroke="#9aa7b6" stroke-width="1.4"/></svg><span style="color:#e9eef6">en solitario</span></div>
             <div class="li"><svg width="24" height="18"><circle cx="10" cy="9" r="8" fill="#9aa7b6" stroke="#0a0e14" stroke-width="1.4"/></svg><span>en grupo</span></div>
             <div class="li"><svg width="24" height="18"><polygon points="16,9 4,2.5 4,15.5" fill="#9aa7b6" stroke="#0a0e14" stroke-width="1.4"/></svg><span>cogiendo rebufo</span></div>
+            <div class="li"><svg width="24" height="18"><circle cx="10" cy="9" r="8" fill="#e9eef6" stroke="#9aa7b6" stroke-width="3"/></svg><span>solo da rebufo</span></div>
             <div class="li"><svg width="24" height="18"><circle cx="10" cy="9" r="8" fill="none" stroke="#7fd8ff" stroke-width="1.8"/></svg><span style="color:#9fdcff">cruza línea</span></div>
-            <div class="trknote">≤0,5 s = grupo · 0,5–1,5 s = uno coge rebufo del otro (triángulo) · >1,5 s = vuelta limpia. Cada grupo/rebufo lleva su color (el mismo que une sus filas). Se actualiza al cruzar meta o sector. (Estos son los triángulos visuales; la nota del kart usa su propio umbral ajustable: «Hueco delante/detrás».)</div>
+            <div class="trknote">Los grupos usan los MISMOS umbrales que la vuelta limpia (ajustables en 🏎️ Algoritmo): <b>Hueco mín. por delante</b> = hasta ahí coges rebufo del de delante; <b>Hueco mín. por detrás</b> = hasta ahí te empuja el de detrás. <b>Relleno</b> = se beneficia · <b>hueco con contorno</b> = no se beneficia pero da rebufo al de atrás · <b>blanco</b> = va solo. Cada grupo lleva su color, el mismo que une sus filas en el live timing.</div>
           </div>
         </div>
       </div>
@@ -608,14 +689,20 @@
         <div class="modebar"><div class="seg small" id="mode"><button data-m="manual" class="on" title="Manual">M</button><button data-m="manualnr" title="Manual sin repetir kart: nunca te asigna un kart que ya hayas pillado">Sin repetir</button><button data-m="autodirect" title="Automático">Auto</button><button data-m="auto" title="Estimación de boxes (%)">%</button></div></div>
         <div class="ph" style="justify-content:flex-start">
           <div class="r">
-            <input class="miniinput" id="cf_rows" type="number" min="1" max="6" value="3" title="Nº de filas">
-            <span style="color:var(--dim)">×</span>
-            <input class="miniinput" id="cf_per" type="number" min="1" max="6" value="3" title="Karts por fila">
-            <label class="tog" style="margin-left:4px" title="Editar (mover/sustituir karts)">✎<input type="checkbox" id="editmode"></label><span id="sortmarginwrap" style="display:inline-flex;align-items:center;gap:4px;margin-left:6px;opacity:.5" title="Hueco reservado bajo las filas de sorteo, para que no salte la cola al crecer una fila. Solo con Editar."><span style="font-size:11px;color:var(--dim)">Margen</span><input type="range" id="sortmargin" min="0" max="700" step="10" value="0" style="width:80px" disabled></span>
-            <button class="ui" id="szundo" title="Deshacer el último movimiento del sorteo" style="margin-left:6px" disabled>↶</button><button class="ui" id="szredo" title="Rehacer el movimiento" disabled>↷</button>
-            <button class="ui" id="holdpos" title="Posición de las entradas a boxes" style="display:none;margin-left:4px">Entradas ↑</button>
-            <button class="ui" id="boxrot" title="Rotar todo el cuadro 180°: gira las filas y cambia por qué lado entran y salen los karts" style="margin-left:4px">⟲ Rotar</button>
-            <button class="ui" id="boxfull" title="Pantalla completa (para móvil/tablet)" style="margin-left:4px">⛶</button>
+            <div class="r" style="flex-wrap:wrap;align-items:center;gap:4px">
+              <label class="tog" title="Editar (mover/sustituir karts)">✎<input type="checkbox" id="editmode"></label>
+              <button class="ui" id="szundo" title="Deshacer el último movimiento del sorteo" style="margin-left:6px" disabled>↶</button><button class="ui" id="szredo" title="Rehacer el movimiento" disabled>↷</button>
+              <button class="ui" id="boxfull" title="Pantalla completa (para móvil/tablet)" style="margin-left:6px">⛶</button>
+            </div>
+            <div class="r" id="sortedit" style="flex-wrap:wrap;align-items:center;gap:4px;display:none">
+              <input class="miniinput" id="cf_rows" type="number" min="1" max="6" value="3" title="Nº de filas">
+              <span style="color:var(--dim)">×</span>
+              <input class="miniinput" id="cf_per" type="number" min="1" max="6" value="3" title="Karts por fila">
+              <span id="sortmarginwrap" style="display:inline-flex;align-items:center;gap:4px;margin-left:6px" title="Hueco reservado bajo las filas de sorteo, para que no salte la cola al crecer una fila."><span style="font-size:11px;color:var(--dim)">Margen</span><input type="range" id="sortmargin" min="0" max="700" step="10" value="0" style="width:80px"></span>
+              <button class="ui" id="boxrot" title="Rotar todo el cuadro 180°: gira las filas y cambia por qué lado entran y salen los karts" style="margin-left:6px">⟲ Rotar</button>
+              <button class="ui" id="boxside" title="Poner la Cola de repostaje y la Fila de salida de boxes JUNTAS al mismo lado: las dos debajo del sorteo (o arriba si está rotado). Cola a la izquierda, salida a la derecha; se invierten al rotar." style="margin-left:4px">⇹ Juntar</button>
+              <button class="ui" id="holdpos" title="Posición de las entradas a boxes" style="display:none;margin-left:4px">Entradas ↑</button>
+            </div>
           </div></div>
         <div class="boxwrap"><div id="bx_top" class="bxcol-exit"><div id="bx_top_c"></div><div class="sortrsz" data-rsz="top" draggable="false" title="Arrastra para cambiar el alto del recuadro"></div></div><div class="boxstage" id="boxstage"><div class="boxes horiz" id="boxes"></div><div class="rsz rsz-x" id="rszx" title="Arrastra para cambiar el ancho de los recuadros"></div><div class="rsz rsz-y" id="rszy" title="Arrastra para cambiar el alto de los recuadros"></div></div><div id="bx_bot" class="bxcol-repo"><div id="bx_bot_c"></div><div class="sortrsz" data-rsz="bot" draggable="false" title="Arrastra para cambiar el alto del recuadro"></div></div>
           <div class="note" id="editnote" style="display:none">Modo edición: arrastra un kart y suéltalo entre dos karts para recolocarlo · ⤬ elimina el kart · «+ kart» añade uno nuevo a la fila.</div>
@@ -642,14 +729,14 @@
         <div class="ph"><h2>Reglamento y cálculo</h2></div>
         <div class="plan">
           <div class="cfg">
-            <div class="field"><label>Carrera (h)</label><input id="cf_h" type="number" value="10" min="1" step="0.5"></div>
-            <div class="field"><label>Paradas oblig.</label><input id="cf_stops" type="number" value="17" min="1"></div>
-            <div class="field"><label>Turno máx (min)</label><input id="cf_max" type="number" value="60" min="1"></div>
-            <div class="field"><label>Turno mín (min)</label><input id="cf_min" type="number" value="5" min="1"></div>
-            <div class="field"><label>Parada mín (s)</label><input id="cf_pitmin" type="number" value="0" min="0"></div>
-            <div class="field"><label>Mín. piloto (min)</label><input id="cf_drvmin" type="number" value="60" min="0"></div>
-            <div class="field"><label>Cierre box (min final)</label><input id="cf_boxclose" type="number" value="0" min="0"></div>
-            <div class="field"><label>Interv. color (s)</label><input id="cf_gradint" type="number" value="1" min="0.2" max="3" step="0.1"></div>
+            <div class="field" title="Duración total de la carrera, en horas."><label>Carrera (h)</label><input id="cf_h" type="number" value="10" min="1" step="0.5"></div>
+            <div class="field" title="Nº de paradas en boxes obligatorias del reglamento."><label>Paradas oblig.</label><input id="cf_stops" type="number" value="17" min="1"></div>
+            <div class="field" title="Duración máxima de un turno (relevo) antes de tener que parar."><label>Turno máx (min)</label><input id="cf_max" type="number" value="60" min="1"></div>
+            <div class="field" title="Duración mínima que debe tener un turno para darlo por válido."><label>Turno mín (min)</label><input id="cf_min" type="number" value="5" min="1"></div>
+            <div class="field" title="Tiempo mínimo que debe durar una parada en boxes; por debajo salta aviso."><label>Parada mín (s)</label><input id="cf_pitmin" type="number" value="0" min="0"></div>
+            <div class="field" title="Tiempo mínimo que cada piloto debe conducir en total (0 = sin mínimo)."><label>Mín. piloto (min)</label><input id="cf_drvmin" type="number" value="60" min="0"></div>
+            <div class="field" title="Minutos finales en los que el box cierra: el último turno nunca baja de ese tiempo."><label>Cierre box (min final)</label><input id="cf_boxclose" type="number" value="0" min="0"></div>
+            <div class="field" title="Segundos que separan el verde del rojo al colorear Última vuelta y Media de turno (referencia = mejor vuelta). Solo afecta al color."><label>Interv. color (s)</label><input id="cf_gradint" type="number" value="1" min="0.2" max="3" step="0.1"></div>
           </div>
           <div class="rain" id="rainbox"></div>
           <div class="note">Pincha el nombre de un equipo para ver turnos cortos disponibles, tiempos de piloto y sus sanciones.</div>
@@ -703,17 +790,22 @@
 (function(){
   if(window.storage) return;                 // si el entorno ya lo provee, no tocar
   var SID; try{ SID=new URLSearchParams(location.search).get('session')||'live'; }catch(_){ SID='live'; }
-  var PFX='mrp:'+SID+':';                     // ajustes INDEPENDIENTES por carrera
-  window.__mrpLSPfx = PFX;
+  var PFX='mrp:'+SID+':', GPFX='mrp:';        // por carrera / global
+  function isGlobal(k){ return /^circuit:/.test(k)||k==='collayout'||k==='driverdb'; }   // circuitos, layout y notas de pilotos: COMPARTIDOS entre carreras
+  function pfx(k){ return isGlobal(k)?GPFX:PFX; }
+  window.__mrpLSPfx = PFX; window.__mrpKeyPfx = pfx;
   window.__mrpMem = window.__mrpMem || {};
   var mem = window.__mrpMem;
-  function lg(k){ try{ return localStorage.getItem(PFX+k); }catch(_){ return null; } }
-  function ls(k,v){ try{ localStorage.setItem(PFX+k, v); }catch(_){} }
-  try{ for(var i=0;i<localStorage.length;i++){ var kk=localStorage.key(i); if(kk&&kk.indexOf(PFX)===0) mem[kk.slice(PFX.length)]=localStorage.getItem(kk); } }catch(_){}
+  function lg(k){ try{ return localStorage.getItem(pfx(k)+k); }catch(_){ return null; } }
+  function ls(k,v){ try{ localStorage.setItem(pfx(k)+k, v); }catch(_){} }
+  try{ for(var i=0;i<localStorage.length;i++){ var kk=localStorage.key(i); if(!kk)continue;
+    if(kk.indexOf(PFX)===0){ mem[kk.slice(PFX.length)]=localStorage.getItem(kk); }
+    else if(kk.indexOf(GPFX)===0){ var rest=kk.slice(GPFX.length); if(isGlobal(rest)) mem[rest]=localStorage.getItem(kk); }
+  } }catch(_){}
   window.storage={
     get:function(k){ var v=(k in mem)?mem[k]:lg(k); return Promise.resolve(v==null?null:{key:String(k),value:v}); },
     set:function(k,v){ mem[k]=v; ls(k,v); if(window.__mrpSync)window.__mrpSync(); return Promise.resolve({key:String(k),value:v}); },
-    delete:function(k){ delete mem[k]; try{localStorage.removeItem(PFX+k);}catch(_){}; if(window.__mrpSync)window.__mrpSync(); return Promise.resolve({key:String(k),deleted:true}); },
+    delete:function(k){ delete mem[k]; try{localStorage.removeItem(pfx(k)+k);}catch(_){}; if(window.__mrpSync)window.__mrpSync(); return Promise.resolve({key:String(k),deleted:true}); },
     list:function(pre){ var ks=Object.keys(mem).filter(function(kn){return !pre||kn.indexOf(pre)===0;}); return Promise.resolve({keys:ks}); }
   };
 })();
@@ -724,6 +816,8 @@
   const rnd=(a,b)=>a+Math.random()*(b-a),clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),lerp=(a,b,t)=>a+(b-a)*t;
   function scoreColor(p){p=clamp(p,0,100);let c;if(p<50)c=[lerp(216,235,p/50),lerp(54,176,p/50),52];else c=[lerp(235,42,(p-50)/50),lerp(176,198,(p-50)/50),lerp(52,122,(p-50)/50)];return `rgb(${c.map(Math.round).join(',')})`;}
   function lapColor(f){f=clamp(f,0,1);return `hsl(${(120*(1-f)).toFixed(0)},68%,52%)`;}
+  // Gradiente para notas en MOJADO: rosa = mejor, azul oscuro = peor (asi se distingue del seco de un vistazo)
+  function wetColor(f){f=clamp(f,0,1);const h=320+(225-320)*f, l=66+(38-66)*f, sat=78+(62-78)*f;return `hsl(${h.toFixed(0)},${sat.toFixed(0)}%,${l.toFixed(0)}%)`;}
   function gradInt(){ const el=document.getElementById('cf_gradint'); const v=el?parseFloat(el.value):1; return (isFinite(v)&&v>0)?v:1; }
   function knInt(){ const el=document.getElementById('topknint'); const v=el?parseFloat(el.value):0.7; return (isFinite(v)&&v>0)?v:0.7; }
   function whiteRed(t){t=clamp(t,0,1);return `rgb(${Math.round(lerp(230,232,t))},${Math.round(lerp(235,70,t))},${Math.round(lerp(242,66,t))})`;}
@@ -805,7 +899,7 @@
   let now=0,running=false,finalized=false,rainOn=false,mode='manual',sortMode='real',multiplier=30,apexMode=false;
   const apex={cols:{},labels:{},byType:{},penaCol:null,rows:{},map:{},coms:[],clockMs:null,title:'',title2:'',sessForce:null,track:'',remain:null,saved:null};
   const LAPWORDS=/\b(?:vueltas?|voltas?|voltes|giros?|giri|tours?|laps?|rounds?|runden?|ronden?|rondes|rundt|varv|varvet|omg[a\u00e5]ng|kola?|kierros|k[o\u00f6]r|tururi|tur|krug)\b/i;   // 'vuelta/laps down' multiidioma (ES/PT/GL/CA/IT/FR/EN/DE/NL/SV/DA/NO/CZ/FI/HU/RO/RU)
-  let showBar=true,showDrv=true,clockMode='down',orient='horiz',kartDir='norm',rowLabel='color',editMode=false,boxRot=false;
+  let showBar=true,showDrv=true,clockMode='down',orient='horiz',kartDir='norm',rowLabel='color',editMode=false,boxRot=false,boxSame=false;
   let reliableSet=new Set();
   let retiredSet=new Set();
   let boxW=86,boxH=60;
@@ -819,15 +913,194 @@
   let KART_SPREAD=1.0,DRIVER_SPREAD=1.5;   // s: kart 100→0 = +1,0 ; piloto 10→0 = +1,5
   let KART_AVG_N=5;                          // nº de mejores vueltas limpias que promedia para la nota del kart
   function mint(sc){const id=++maxKid;karts[id-1]={id,score:(sc==null?Math.round(rnd(3,98)):sc),samples:[],resid:null,pct:null,man:null,lock:false};return id;}
+  function bestKartNote(){ let m=Infinity; for(let i=0;i<karts.length;i++){ if(!karts[i])continue; const n=kartNote(i+1); if(n!=null&&n<m)m=n; } return m<Infinity?m:null; }
+  function noteColor(n,wet){ if(n==null)return 'var(--dim)'; const b=bestKartNote(); if(b==null)return 'var(--txt)';
+    const f=clamp((n-b)/knInt(),0,1); return wet?wetColor(f):lapColor(f); }
+  // Color de la nota de UN kart (usa el gradiente de mojado si su nota se calculo con lluvia).
+  function kNoteColor(kid,vacio){ const n=kartNote(kid); if(n==null)return vacio||'var(--dim)';
+    const b=bestKartNote(); const f=clamp((n-(b!=null?b:n))/knInt(),0,1); return kartNoteWet(kid)?wetColor(f):lapColor(f); }
+  // Color de un TIEMPO en vivo (ultima vuelta, media de turno): segun como este la pista AHORA.
+  function liveColor(f){ return trackSlow()?wetColor(f):lapColor(f); }
   function kpct(id){return karts[id-1]?karts[id-1].pct:null;}
-  function isCleanLap(l){ return (l.gap==null||l.gap>CLEAN_AHEAD) && (l.gapB==null||l.gapB>CLEAN_BEHIND); }
+  // Vuelta LIMPIA = sin nadie cerca ni delante ni detrás, comprobado al ABRIR y al CERRAR la vuelta.
+  // Vueltas que NO cuentan nunca: la de entrada a boxes y las DOS primeras de cada turno (salida de boxes).
+  function lapCounts(l){ return !!l && !l.inlap && (l.ln==null || l.ln>2); }
+  function isCleanLap(l){ if(!l)return false;
+    const cl=(a,b)=>((a==null||a>CLEAN_AHEAD)&&(b==null||b>CLEAN_BEHIND));
+    if(!cl(l.gap,l.gapB))return false;                                   // al cerrar
+    if(l.gap0!==undefined||l.gapB0!==undefined){ if(!cl(l.gap0,l.gapB0))return false; }   // al abrir
+    return true; }
   const GLITCH_GAP=2.0;
-  function _noteFrom(laps){ if(!laps||!laps.length) return null; const ts=laps.map(l=>l.t).sort((a,b)=>a-b), med=ts[ts.length>>1]; const ok=laps.filter(l=>l.t<=med*1.3), N=Math.max(1,KART_AVG_N); const _dg=a=>{ const m=a.length?a[a.length>>1]:0; while(a.length>=3 && a[0] < m - GLITCH_GAP) a.shift(); return a; }; let sel; if(PRIOCLEAN){ const clean=_dg(ok.filter(isCleanLap).map(l=>l.t).sort((a,b)=>a-b)); sel=clean.slice(0,N); if(!sel.length){ const dirty=_dg(ok.filter(l=>!isCleanLap(l)).map(l=>l.t+towGain()).sort((a,b)=>a-b)); sel=dirty.slice(0,N); } } else { const all=_dg(ok.map(l=>isCleanLap(l)?l.t:l.t+towGain()).sort((a,b)=>a-b)); sel=all.slice(0,N); } if(!sel.length) return null; return sel.reduce((a,b)=>a+b,0)/sel.length; }
+  // Filtros de calidad DENTRO de cada turno (mismo equipo + mismo kart entre paradas):
+  //  · una vuelta sucia nunca puede ser mas lenta que la mejor limpia DE SU TURNO (ahi se perdio tiempo, no se gano rebufo)
+  //  · una vuelta limpia mas lenta que la mejor sucia valida de su turno por mas de CLEAN_MAXD se descarta (error del piloto)
+  function _stintClean(laps){
+    const by={};
+    laps.filter(lapCounts).forEach(l=>{ const k=(l.team!=null?l.team:'-')+'|'+(l.kart!=null?l.kart:'-')+'|'+(l.st!=null?l.st:0); (by[k]||(by[k]=[])).push(l); });
+    const out=[];
+    Object.keys(by).forEach(k=>{
+      const g=by[k];
+      const cl=g.filter(isCleanLap).slice().sort((a,b)=>a.t-b.t);
+      let dy=g.filter(l=>!isCleanLap(l)).slice().sort((a,b)=>a.t-b.t);
+      if(cl.length) dy=dy.filter(l=>l.t<=cl[0].t);                       // sucias que de verdad ganaron rebufo
+      let keep=cl;
+      if(CLEAN_MAXD>0&&cl.length&&dy.length){ keep=cl.filter(l=>l.t<=dy[0].t+CLEAN_MAXD); }   // se aplica SIEMPRE, aunque deje el turno sin limpias
+      for(const l of keep)out.push(l);
+      for(const l of dy)out.push(l);
+    });
+    return out;
+  }
+  function _noteFrom(laps0){ if(!laps0||!laps0.length) return null; const laps=_stintClean(laps0); if(!laps.length) return null;
+    const ts=laps.map(l=>l.t).sort((a,b)=>a-b), med=ts[ts.length>>1]; const ok=laps.filter(l=>l.t<=med*1.3), N=Math.max(1,KART_AVG_N);
+    const _dg=a=>{ const m=a.length?a[a.length>>1]:0; while(a.length>=3 && a[0] < m - GLITCH_GAP) a.shift(); return a; };
+    let sel;
+    if(PRIOCLEAN){ const clean=_dg(ok.filter(isCleanLap).map(l=>l.t).sort((a,b)=>a-b)); sel=clean.slice(0,N);
+      if(!sel.length){ const dirty=_dg(ok.filter(l=>!isCleanLap(l)).map(l=>l.t+(lapSlow(l)?0:towGain())).sort((a,b)=>a-b)); sel=dirty.slice(0,N); } }
+    else { const all=_dg(ok.map(l=>(isCleanLap(l)||lapSlow(l))?l.t:l.t+towGain()).sort((a,b)=>a-b)); sel=all.slice(0,N); }   // con pista mojada el rebufo no existe: no se corrige
+    if(!sel.length) return null; return sel.reduce((a,b)=>a+b,0)/sel.length; }
+  function kartNoteWet(kid){ const K=karts[kid-1]; return !!(K&&K._noteWet); }
   function towGain(){const el=document.getElementById('toprebufo');const v=el?parseFloat(el.value):TOW_MAX;return (isFinite(v)&&v>=0)?v:TOW_MAX;}
   function goodMargin(){const el=document.getElementById('topmargin');const v=el?parseFloat(el.value):0.1;return (isFinite(v)&&v>=0)?v:0.1;}
-  function recommendedTow(){const useRel=reliableSet.size>0;const diffs=[];karts.forEach(k=>{if(!k||!k.rawLaps)return;const laps=useRel?k.rawLaps.filter(l=>reliableSet.has(l.team)):k.rawLaps;if(laps.length<4)return;const clean=laps.filter(l=>l.t>0&&(l.gap==null||l.gap>CLEAN_AHEAD)).map(l=>l.t).sort((a,b)=>a-b);const tow=laps.filter(l=>l.t>0&&l.gap!=null&&l.gap<=CLEAN_AHEAD).map(l=>l.t).sort((a,b)=>a-b);const n=Math.min(clean.length,tow.length,5);for(let i=0;i<n;i++){const dd=clean[i]-tow[i];if(dd>-0.5&&dd<3)diffs.push(dd);}});if(diffs.length<4)return null;return diffs.reduce((a,b)=>a+b,0)/diffs.length;}
+  // Rebufo recomendado: SOLO equipos fiables. Unidad = TURNO (mismo equipo + mismo kart entre paradas).
+  // De cada turno: sus N mejores limpias vs sus N mejores sucias -> diferencia. Media por equipo y luego entre equipos.
+  // Las limpias más lentas que la mejor SUCIA del turno por más de CLEAN_MAXD se descartan (error del piloto).
+  function recommendedTow(){
+    const N=Math.max(1,TOW_N||5);
+    const stints={};                                   // clave: equipo|kart|turno
+    karts.forEach(k=>{ if(!k||!k.rawLaps)return;
+      k.rawLaps.forEach(l=>{ if(!(l.t>0))return; if(!lapCounts(l))return; if(lapSlow(l))return; if(!reliableSet.has(l.team))return;
+        const key=l.team+'|'+(l.kart!=null?l.kart:k.id)+'|'+(l.st!=null?l.st:0);
+        (stints[key]||(stints[key]={team:l.team,laps:[]})).laps.push(l); });
+    });
+    const perTeam={};
+    Object.keys(stints).forEach(key=>{
+      const st=stints[key];
+      let clean=st.laps.filter(isCleanLap).map(l=>l.t).sort((a,b)=>a-b);
+      let dirty=st.laps.filter(l=>!isCleanLap(l)).map(l=>l.t).sort((a,b)=>a-b);
+      if(!clean.length||!dirty.length)return;
+      dirty=dirty.filter(t=>t<=clean[0]);        // una sucia NUNCA puede ser mas lenta que la mejor limpia (perdio tiempo, no gano rebufo)
+      if(!dirty.length)return;
+      if(CLEAN_MAXD>0){ const lim=dirty[0]+CLEAN_MAXD; clean=clean.filter(t=>t<=lim); }   // fuera las limpias "malas"
+      if(!clean.length)return;
+      const n=Math.min(clean.length,dirty.length,N);                                      // si solo quedan 2 limpias -> 2 vs 2
+      let c=0,d=0; for(let i2=0;i2<n;i2++){c+=clean[i2];d+=dirty[i2];}
+      const diff=(c/n)-(d/n);
+      if(!(diff>-0.5&&diff<3))return;
+      (perTeam[st.team]||(perTeam[st.team]=[])).push(diff);
+    });
+    const teamAvgs=Object.keys(perTeam).map(tm=>{const a=perTeam[tm];return a.reduce((x,y)=>x+y,0)/a.length;});
+    if(teamAvgs.length<1)return null;
+    return teamAvgs.reduce((a,b)=>a+b,0)/teamAvgs.length;
+  }
+  // ================= COSTE DE PARADA (en VUELTAS) =================
+  // Medimos NOSOTROS la vuelta de entrada (meta -> pit-in) y la de salida (pit-out -> meta).
+  // Nunca usamos el valor de Apex: puede llevar el tiempo de box dentro y desvirtuarlo.
+  const pitS={in:{dry:[],wet:[]},out:{dry:[],wet:[]}};   // muestras, separadas por condicion de pista
+  let _pitLapDelta=null;                                  // vueltas que cuenta Apex durante la parada (3 = Modo 1, 2 = Modo 2)
+  function pitSample(kind,t,secs){
+    if(!(secs>2&&secs<600))return;                        // descarta valores imposibles
+    if(!reliableSet.has(t.dorsal))return;                 // SOLO equipos fiables
+    const wet=trackSlow(), a=pitS[kind][wet?'wet':'dry'];
+    a.push({t:secs,pace:racePace()});
+    if(a.length>60)a.shift();
+  }
+  function pitLapDelta(d){ if(d>=2&&d<=4)_pitLapDelta=d; }
+  function pitModeAuto(){ return _pitLapDelta!=null?_pitLapDelta:3; }   // 3 = el box cuenta como vuelta aparte
+  // media de las X mejores muestras; si no hay suficientes en la condicion actual, se ESTIMA
+  // escalando las de seco con lo que ha empeorado el ritmo (en proporcion, no en segundos).
+  function pitAvg(kind){
+    const N=Math.max(1,PIT_N||5), wet=trackSlow();
+    const cur=pitS[kind][wet?'wet':'dry'];
+    if(cur.length>=(wet?2:1)){                            // en mojado esperamos a tener 2 muestras reales
+      const b=cur.map(x=>x.t).sort((a,b)=>a-b).slice(0,N);
+      return {v:b.reduce((a,b)=>a+b,0)/b.length, est:false, n:b.length};
+    }
+    const dry=pitS[kind].dry;
+    if(!dry.length)return {v:null,est:false,n:0};
+    const b=dry.map(x=>x.t).sort((a,b)=>a-b).slice(0,N);
+    const base=b.reduce((a,b)=>a+b,0)/b.length;
+    if(!wet)return {v:base,est:false,n:b.length};
+    const pd=dry.map(x=>x.pace).filter(v=>v!=null).sort((a,b)=>a-b);
+    const paceDry=pd.length?pd[pd.length>>1]:null, paceNow=racePace();
+    const k=(paceDry&&paceNow)?(paceNow/paceDry):1;       // cuanto ha empeorado el ritmo, en proporcion
+    return {v:base*k, est:true, n:b.length};
+  }
+  // Devuelve el coste de una parada: en vueltas y en segundos.
+  function pitCost(){
+    const pace=racePace(); if(pace==null)return null;
+    const ein=pitAvg('in'), eout=pitAvg('out');
+    if(ein.v==null||eout.v==null)return null;
+    const box=(MIN_PIT||0)+1;                             // tiempo obligatorio + 1s de margen
+    const suma=ein.v+box+eout.v;
+    const vueltas=suma/pace;
+    const modo=(PIT_MODE==='1'?3:(PIT_MODE==='2'?2:pitModeAuto()));
+    const perdV=vueltas-modo;
+    return {laps:perdV, secs:perdV*pace, pace, tin:ein.v, tout:eout.v, box, modo,
+            est:(ein.est||eout.est), n:Math.min(ein.n,eout.n)};
+  }
+  // ---- ESTADO DE PISTA (lluvia / coche de seguridad / pista no representativa) ----
+  let _bestPace=null, _slowTrack=false, _trackMode='auto';   // 'auto' | 'dry' | 'wet'
+  function trackSlow(){ return _trackMode==='wet' ? true : (_trackMode==='dry' ? false : _slowTrack); }
+  // Referencia de pista buena = MEJOR ritmo de toda la carrera. Se recalcula siempre, asi que si la
+  // carrera empieza mojada y luego seca, las vueltas de lluvia quedan marcadas HACIA ATRAS solas.
+  let _paceRefCache={k:null,v:null};
+  function paceRef(){
+    let n=0,best=null;
+    for(const K of karts){ if(!K||!K.rawLaps)continue; for(const l of K.rawLaps){ n++; if(l.pace!=null&&(best==null||l.pace<best))best=l.pace; } }
+    if(_bestPace!=null&&(best==null||_bestPace<best))best=_bestPace;
+    _paceRefCache={k:n,v:best}; return best;
+  }
+  // ¿esta vuelta se hizo con la pista NO representativa? (lluvia, coche de seguridad...)
+  function lapSlow(l){
+    if(_trackMode==='wet')return true;
+    if(_trackMode==='dry')return false;
+    if(!l||l.pace==null)return false;
+    const r=paceRef(); if(r==null)return false;
+    return (l.pace-r)>RAIN_IN;
+  }
+  function updateTrackState(){
+    const p=racePace(); if(p==null)return;
+    if(_bestPace==null||p<_bestPace)_bestPace=p;                 // el mejor ritmo del grupo = referencia de pista buena
+    const d=p-_bestPace;
+    if(!_slowTrack && d>RAIN_IN) _slowTrack=true;                 // entra
+    else if(_slowTrack && d<RAIN_OUT) _slowTrack=false;           // sale (umbral distinto = no baila)
+  }
   function racePace(){const useRel=reliableSet.size>0;const ls=teams.filter(t=>!t.inPit&&!t.retired&&(!useRel||reliableSet.has(t.dorsal))&&t.last>0).map(t=>t.last);if(ls.length<2)return null;const med=ls.slice().sort((a,b)=>a-b)[ls.length>>1];const clean=ls.filter(l=>l<med*1.25).sort((a,b)=>a-b).slice(0,5);if(!clean.length)return null;return clean.reduce((a,b)=>a+b,0)/clean.length;}
-  function kartNote(kid){ const K=karts[kid-1]; if(!K||!K.rawLaps||!K.rawLaps.length){ if(K)K._noteBacked=false; return null; } const laps=K.rawLaps.filter(l=>l.t>0); const rel=laps.filter(l=>reliableSet.has(l.team)); const relNote=_noteFrom(rel); if(relNote!=null){ K._noteBacked=true; const unrel=laps.filter(l=>!reliableSet.has(l.team)); const impr=unrel.filter(l=>isCleanLap(l)&&l.t<relNote); return _noteFrom(rel.concat(impr)); } K._noteBacked=false; return _noteFrom(laps); }
+  function _noteInfo(laps){                       // nota de un conjunto + cuantas vueltas la respaldan
+    if(!laps||!laps.length) return {note:null,used:0};
+    const f=_stintClean(laps); if(!f.length) return {note:null,used:0};
+    return {note:_noteFrom(laps), used:f.length};
+  }
+  // NOTA DEL KART, turno a turno y en orden:
+  //   · turno de equipo FIABLE  -> SIEMPRE sobrescribe (en cuanto tiene vueltas validas suficientes)
+  //   · turno de equipo NO fiable -> solo sobrescribe si MEJORA la nota anterior
+  //   · el asterisco (*) marca que la nota nunca la ha puesto un equipo fiable
+  function kartNote(kid){
+    const K=karts[kid-1];
+    if(!K||!K.rawLaps||!K.rawLaps.length){ if(K)K._noteBacked=false; return null; }
+    const N=Math.max(1,KART_AVG_N);
+    // Se parte en BLOQUES: cambia de bloque al cambiar de equipo, de turno O de condicion de pista.
+    // Asi, si empieza a llover a mitad de turno, las vueltas secas y las mojadas no se mezclan.
+    const order=[],map={};
+    let _sig=null,_key=null,_blk=0;
+    K.rawLaps.forEach(l=>{ if(!(l.t>0))return;
+      const slow=lapSlow(l), sig=l.team+'|'+(l.st!=null?l.st:0)+'|'+(slow?1:0);
+      if(sig!==_sig){ _sig=sig; _key='b'+(++_blk); map[_key]={team:l.team,slow,laps:[]}; order.push(_key); }
+      map[_key].laps.push(l); });
+    let note=null, backed=false, cond=null;
+    order.forEach(k=>{
+      const g=map[k], inf=_noteInfo(g.laps);
+      if(inf.note==null)return;
+      const cambio=(cond!=null && g.slow!==cond);            // seco->mojado o mojado->seco
+      const suficiente=(inf.used>=N)||(note==null)||cambio;  // al cambiar la condicion, la nota vieja no sirve: se rehace con lo que haya
+      if(!suficiente)return;
+      if(cambio){ note=inf.note; backed=reliableSet.has(g.team); }      // otra condicion: sobrescribe cualquiera, desde cero
+      else if(reliableSet.has(g.team)){ note=inf.note; backed=true; }   // fiable: manda siempre
+      else if(note==null||inf.note<note){ note=inf.note; }              // no fiable: solo si mejora
+      cond=g.slow;
+    });
+    K._noteBacked=backed; K._noteWet=(note!=null?!!cond:false); return note;
+  }
   function kq(id){const k=karts[id-1];return k?(1-clamp(k.score,0,100)/100)*KART_SPREAD:KART_SPREAD;}
 
   for(let i=0;i<N_TEAMS;i++)mint();           // karts 1..12 on track
@@ -853,7 +1126,7 @@
   function manEffect(m){return (1-clamp(m,0,10)/10)*DRIVER_SPREAD;}    // nota fija 0-10 -> penalización en s
   function drvShown(d){return (d.lock&&d.man!=null)?clamp(d.man*10,0,100):d.pct;}
   function lapTime(t){return BASE+kq(t.kart)+drvPen(drv(t))+(rainOn?RAINPEN:0)+trackEvo(now)+rnd(-0.15,0.15);}
-  let TOW_NEAR=1.2,TOW_MAX=0.5,TRAFFIC_NEAR=0.7,TRAFFIC_MAX=0.4,CLEAN_AHEAD=2.0,CLEAN_BEHIND=1.5;let PRIOCLEAN=1;
+  let TOW_NEAR=1.2,TOW_MAX=0.5,TRAFFIC_NEAR=0.7,TRAFFIC_MAX=0.4,CLEAN_AHEAD=1.0,CLEAN_BEHIND=0.5;let PRIOCLEAN=0;let TOW_N=5;let CLEAN_MAXD=1.0;let RAIN_IN=7,RAIN_OUT=4;let PIT_N=5,PIT_MODE='auto';
   let trackEoEst=0;
   function trackEvo(time){const f=clamp(time/Math.max(1,DEMO_RACE),0,1);return f<0.25?0.5*(1-f/0.25):0.25*((f-0.25)/0.75);}
   function nearGaps(t){const me=progress(t);let af=Infinity,bf=Infinity,ao=null;teams.forEach(o=>{if(o===t||o.inPit)return;const d=progress(o)-me,sec=Math.abs(d)*t.target;if(d>0){if(sec<af){af=sec;ao=o;}}else if(d<0){if(sec<bf)bf=sec;}});return{ahead:af,behind:bf,ao};}
@@ -938,9 +1211,9 @@
   }; }
   function swap(t,r){r=clamp(r|0,0,rowsN-1);if(!rows[r]||!rows[r].length){r=rows.findIndex(x=>x&&x.length);if(r<0)return;}r=nrRow(t,r);if(!rows[r]||!rows[r].length){r=rows.findIndex(x=>x&&x.length);if(r<0)return;}const inId=rows[r].shift();if(karts[t.kart-1])karts[t.kart-1].drop={dorsal:t.dorsal,name:t.name};rows[r].push(t.kart);pushUsed(t,t.kart);t.kart=inId;assignFlush(t,inId);pushUsed(t,inId);t.stops++;t.assigned=true;if(noRepeat||Math.random()<0.5)t.di=(t.di+1)%t.drivers.length;}
   function assign(d,r){const t=teams.find(x=>x.dorsal===d);if(!t||t.assigned)return;swap(t,r);const i=pending.indexOf(d);if(i>=0)pending.splice(i,1);}
-  function apexPitIn(t){ if(!t._pitHeld){ t._pitInLaps=t.laps; if(mode!=='auto' && t.kart){ holding.push({kart:t.kart,dorsal:t.dorsal,name:t.name,pitAt:now,seq:++_pitCounter}); t.waitKart=true; t.placed=false; t.assigned=false; t.kart=0; t.exitUnassigned=false; } } t._pitHeld=true; }
-  function apexTurnClose(t){ if(t.stintStart==null)return; const dur=now-t.stintStart; if(!(dur>0))return; const _sl=t.stintLaps||[]; const _avg=_sl.length?_sl.reduce((a,b)=>a+b,0)/_sl.length:null; (t.history||(t.history=[])).push({type:'stint',kart:t.kart,dur,avg:_avg}); if(t.history.length>80)t.history.shift(); }   // cierra el turno que acaba: guarda su duración y media
-  function apexPitClose(t,dur){ if(dur==null)dur=(t.pitStart?now-t.pitStart:0); (t.history||(t.history=[])).push({type:'pit',dur:Math.max(0,dur)}); if(t.history.length>80)t.history.shift(); }   // cierra la parada: guarda su duración (real = pit-in→pit-out, o estimada)
+  function apexPitIn(t){ if(!t._pitHeld){ try{ if(t._lastLapRef)t._lastLapRef.inlap=true; }catch(_){} t._stintLapN=0; t._pitInLaps=t.laps; if(mode!=='auto' && t.kart){ holding.push({kart:t.kart,dorsal:t.dorsal,name:t.name,pitAt:now,seq:++_pitCounter}); t.waitKart=true; t.placed=false; t.assigned=false; t.kart=0; t.exitUnassigned=false; } } t._pitHeld=true; }
+  function apexTurnClose(t){ if(t.stintStart==null)return; const dur=now-t.stintStart; if(!(dur>0))return; const _sl=t.stintLaps||[]; const _avg=_sl.length?_sl.reduce((a,b)=>a+b,0)/_sl.length:null; (t.history||(t.history=[])).push({type:'stint',kart:t.kart,dur,avg:_avg}); if(t.history.length>80)t.history.shift(); }
+  function apexPitClose(t,dur){ if(dur==null)dur=(t.pitStart?now-t.pitStart:0); (t.history||(t.history=[])).push({type:'pit',dur:Math.max(0,dur)}); if(t.history.length>80)t.history.shift(); }
 
   // ---- Estrategia automática de los equipos rivales ----
   // Nivel del equipo = media de notas de sus pilotos. Rivales directos = mismo escalón.
@@ -952,7 +1225,7 @@
     teams.forEach(o=>{if(o===t||o.inPit)return;if(tierOf(teamLevel(o))!==tier)return;const orp=recentPace(o);if(orp!=null)ps.push(orp-drvPen(drv(o)));});
     if(!ps.length)return 0;ps.sort((a,b)=>a-b);return mk-ps[Math.floor(ps.length/2)];}
   function bestFrontKpct(){let b=null;for(let r=0;r<rows.length;r++){const row=rows[r];if(row&&row.length){const p=kpct(row[0]);if(p!=null&&(b==null||p>b))b=p;}}return b;}
-  function bestFrontRow(){let bi=-1,bp=-Infinity;for(let r=0;r<rows.length;r++){const row=rows[r];if(row&&row.length){const p=kpct(row[0]),v=(p==null?40:p);if(v>bp){bp=v;bi=r;}}}if(bi<0)bi=rows.findIndex(x=>x&&x.length);return bi<0?0:bi;}
+  function bestFrontRow(){let bi=-1,bn=Infinity;for(let r=0;r<rows.length;r++){const row=rows[r];if(row&&row.length){const n=kartNote(row[0]),v=(n==null?Infinity:n);if(v<bn){bn=v;bi=r;}}}if(bi<0)bi=rows.findIndex(x=>x&&x.length);return bi<0?0:bi;}
   const AI_LOSS=0.5;   // pierde >0,5 s/vuelta de forma sostenida con su rango -> entra a cambiar kart
   function aiPit(t,el){
     if(el<MIN_STINT)return;                                // respeta el turno mínimo
@@ -1013,7 +1286,31 @@
   const TOW=0.5, GRP_FORM=1.5, GRP_BREAK=2.0; // <=0.5 grupo · 0.5-1.5 rebufo · >1.5 separados
   function computeGroups(){
     grpMap={};grpList=[];
-    if(apexMode){teams.forEach(t=>{grpMap[t.dorsal]={col:null,role:'solo',front:null};});return;}
+    if(apexMode){
+      const fa=teams.filter(t=>!t.inPit&&t._pos!=null).sort((a,b)=>a._pos-b._pos);   // orden de clasificacion (1º primero)
+      fa.forEach((t,i)=>{ const nx=fa[i+1]; t._gapBehind=(nx&&nx._gapAhead!=null)?nx._gapAhead:null; });
+      if(!fa.length){ teams.forEach(t=>{grpMap[t.dorsal]={col:null,role:'solo',front:null};}); return; }
+      const groups=[]; let cur=[fa[0]];
+      for(let i=1;i<fa.length;i++){ const g=fa[i]._gapAhead; if(g!=null&&g<=CLEAN_AHEAD)cur.push(fa[i]); else { groups.push(cur); cur=[fa[i]]; } }   // el grupo se forma con el mismo umbral que 'vuelta limpia' (slider Hueco mín. por delante)
+      groups.push(cur);
+      const prev=grpColMem,next={},active=new Set();
+      const multi=groups.filter(g=>g.length>1);
+      multi.forEach(grp=>{const counts={};grp.forEach(t=>{const c=prev[t.dorsal];if(c)counts[c]=(counts[c]||0)+1;});let best=null,bn=0;for(const c in counts){if(counts[c]>bn&&!active.has(c)){best=c;bn=counts[c];}}grp._col=best;if(best)active.add(best);});
+      multi.forEach(grp=>{if(!grp._col){grp._col=randColor(active);active.add(grp._col);}});
+      groups.forEach(grp=>{
+        if(grp.length===1){ grpMap[grp[0].dorsal]={col:null,role:'solo',front:null}; return; }
+        const col=grp._col; grpList.push({col,teams:grp.slice().reverse()});          // el resto del codigo espera de atras hacia delante
+        grp.forEach((t,idx)=>{
+          const ahead=grp[idx-1], behind=grp[idx+1];
+          const bA=!!(ahead && t._gapAhead!=null && t._gapAhead<=CLEAN_AHEAD);         // recibe rebufo del de delante (mismo umbral que 'vuelta limpia')
+          const bB=!!(behind && t._gapBehind!=null && t._gapBehind<=CLEAN_BEHIND);      // le empuja el de detras (mismo umbral que 'vuelta limpia')
+          const role = bA?'draft':(bB?'group':'giver');                                // 'giver' = va en el grupo pero solo DA rebufo
+          grpMap[t.dorsal]={col,role,front:ahead?ahead.dorsal:null}; next[t.dorsal]=col;
+        });
+      });
+      teams.forEach(t=>{ if(!grpMap[t.dorsal])grpMap[t.dorsal]={col:null,role:'solo',front:null}; });
+      grpColMem=next; return;
+    }
     const field=teams.filter(t=>!t.inPit);
     field.forEach(t=>{t._frac=tfrac(t);t._gapAhead=null;t._aheadD=null;t._crossedNow=false;if(!t.lineT){t.lineT=new Array(8).fill(-1);t.lineLap=new Array(8).fill(-1);t._lastLine=null;}});
     const n=field.length;if(!n){_trkCum=null;return;}
@@ -1059,7 +1356,7 @@
     if(!_trk&&!trkInit())return;
     const field=teams.filter(t=>!t.inPit);   // A1: dibujar desde el arranque (los no vistos van a la línea de salida)
     const cum=(_trkCum&&_trkCum.length>=nSectors)?_trkCum:Array.from({length:nSectors},(_,i)=>i/nSectors);
-    const pf=f=>trackDir>0?f:(((1-f)%1)+1)%1,C={x:60,y:_ovalCY};
+    const pf=f=>trackDir>0?f:(((1-f)%1)+1)%1,C=_customTrk?{x:_customTrk.cx,y:_customTrk.cy}:{x:60,y:_ovalCY};
     let g='',labels=['META'];for(let i=1;i<nSectors;i++)labels.push('S'+i);
     for(let j=0;j<nSectors;j++){const meta=(j===0),pt=trkP(pf(cum[j]));const nx=Math.cos(pt.a+Math.PI/2),ny=Math.sin(pt.a+Math.PI/2),half=12;const col=meta?'#eef3f8':'#9fb0c2',w=meta?3.4:2.6,op=meta?1:0.8;
       g+=`<line x1="${(pt.x-nx*half).toFixed(1)}" y1="${(pt.y-ny*half).toFixed(1)}" x2="${(pt.x+nx*half).toFixed(1)}" y2="${(pt.y+ny*half).toFixed(1)}" stroke="${col}" stroke-width="${w}" opacity="${op}" stroke-linecap="round"/>`;
@@ -1071,8 +1368,18 @@
       field.forEach(t=>{t._disp=((t.lapT/(t.target||1))%1+1)%1;if(t._pulse){const mp=trkP(pf(0));trkPulses.push({x:mp.x,y:mp.y,t0:tnow});t._pulse=false;}});
       const dl=field.map(t=>({t,f:pf(t._disp)})).sort((a,b)=>a.f-b.f),nn=dl.length,minSep=(2*11+1)/_trk.L;
       if(nn){for(let it=0;it<3;it++){for(let i=0;i<nn;i++){const a=dl[i],b=dl[(i+1)%nn];let gap=b.f-a.f;if(i===nn-1)gap+=1;if(gap<minSep){const push=(minSep-gap)/2;a.f-=push;b.f+=push;}}}dl.forEach(d=>d.t._disp=((d.f%1)+1)%1);}
-      field.forEach(t=>{const pt=trkP(pf(t._disp));cr+=`<circle cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="11" fill="#e9eef6" stroke="#9aa7b6" stroke-width="1.6"/><text x="${pt.x.toFixed(1)}" y="${(pt.y+4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#1a2230" font-family="monospace">${t.dorsal}</text>`;});
-      _trk.links.innerHTML='';_trk.cars.innerHTML=cr;
+      let lkA='';
+      grpList.forEach(grp=>{ for(let q=0;q<grp.teams.length-1;q++){ const B=grp.teams[q],A=grp.teams[q+1];
+        if(B._disp==null||A._disp==null)return; const p1=trkP(pf(B._disp)),p2=trkP(pf(A._disp));
+        const dd='M'+p1.x.toFixed(1)+' '+p1.y.toFixed(1)+' L'+p2.x.toFixed(1)+' '+p2.y.toFixed(1);
+        lkA+=`<path d="${dd}" fill="none" stroke="${grp.col}" stroke-width="22" stroke-linecap="round" opacity="0.18"/>`;
+        lkA+=`<path d="${dd}" fill="none" stroke="${grp.col}" stroke-width="3.2" stroke-linecap="round" opacity="0.9"/>`; } });
+      field.forEach(t=>{const pt=trkP(pf(t._disp));const m=grpMap[t.dorsal]||{role:'solo',col:null};
+        let fill='#e9eef6',st='#9aa7b6',sw=1.6;
+        if(m.col){ if(m.role==='giver'){ fill='#e9eef6'; st=m.col; sw=3.2; }        // solo DA rebufo: hueco con contorno del grupo
+                   else { fill=m.col; st='#0a0e14'; sw=1.6; } }                      // se beneficia: relleno del color del grupo
+        cr+=`<circle cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="11" fill="${fill}" stroke="${st}" stroke-width="${sw}"/><text x="${pt.x.toFixed(1)}" y="${(pt.y+4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" font-family="monospace" fill="${(m.col&&m.role!=='giver')?'#0a0e14':'#14202e'}">${t.dorsal}</text>`;});
+      _trk.links.innerHTML=lkA;_trk.cars.innerHTML=cr;
       let ps='';trkPulses=trkPulses.filter(pl=>{const age=(tnow-pl.t0)/1000;if(age>0.55)return false;const rr=8+age*18,op=0.9*(1-age/0.55);ps+=`<circle cx="${pl.x.toFixed(1)}" cy="${pl.y.toFixed(1)}" r="${rr.toFixed(1)}" fill="none" stroke="#37d67a" stroke-width="2.4" opacity="${op.toFixed(2)}"/>`;return true;});_trk.pulses.innerHTML=ps;
       return;
     }
@@ -1114,7 +1421,7 @@
     const idx={};[...tbody.children].forEach((tr,i)=>{idx[tr.dataset.dorsal]=i;});
     const gsig=grpList.map(g=>{
       const mem=g.teams.map(t=>idx[t.dorsal]).filter(v=>v!=null).sort((a,b)=>a-b);
-      const dr=g.teams.filter(t=>(grpMap[t.dorsal]||{}).role==='draft').map(t=>idx[t.dorsal]).filter(v=>v!=null).sort((a,b)=>a-b);
+      const dr=g.teams.map(t=>(idx[t.dorsal]!=null?idx[t.dorsal]+':'+((grpMap[t.dorsal]||{}).role||''):null)).filter(v=>v!=null).sort();
       return g.col+':'+mem.join('-')+':'+dr.join('-');
     }).sort().join('|');
     if(gsig===_brkSig)return;_brkSig=gsig;
@@ -1132,6 +1439,9 @@
         if(o.role==='draft'){
           s+=`<line x1="${xs}" y1="${o.y.toFixed(1)}" x2="33" y2="${o.y.toFixed(1)}" stroke="${col}" stroke-width="2" opacity="0.9" stroke-linecap="round"/>`;
           s+=`<polygon points="31,${o.y.toFixed(1)} 41,${(o.y-6).toFixed(1)} 41,${(o.y+6).toFixed(1)}" fill="${col}"/>`;
+        }else if(o.role==='giver'){
+          s+=`<line x1="${xs}" y1="${o.y.toFixed(1)}" x2="40" y2="${o.y.toFixed(1)}" stroke="${col}" stroke-width="2" opacity="0.75" stroke-dasharray="3 2" stroke-linecap="round"/>`;
+          s+=`<circle cx="40" cy="${o.y.toFixed(1)}" r="3.1" fill="none" stroke="${col}" stroke-width="1.8"/>`;
         }else{
           s+=`<line x1="${xs}" y1="${o.y.toFixed(1)}" x2="40" y2="${o.y.toFixed(1)}" stroke="${col}" stroke-width="2" opacity="0.9" stroke-linecap="round"/>`;
           s+=`<circle cx="40" cy="${o.y.toFixed(1)}" r="2.6" fill="${col}"/>`;
@@ -1141,7 +1451,70 @@
     svg.innerHTML=s;
   }
   window.addEventListener('resize',()=>{_brkSig='';sizeOval();});
+  // ---- Trazado propio (dibujado en el editor de circuitos) ----
+  let _customTrk=null;
+  const _OVAL_D='M78 260 L78 472 A18 18 0 0 1 42 472 L42 48 A18 18 0 0 1 78 48 L78 260 Z';
+  function _fracOf(pts,pt){                                     // fracción a lo largo del recorrido del punto más cercano
+    if(!pt||!pts.length)return null;
+    let bi=0,bd=Infinity;
+    for(let i=0;i<pts.length;i++){const dx=pts[i][0]-pt[0],dy=pts[i][1]-pt[1],d=dx*dx+dy*dy;if(d<bd){bd=d;bi=i;}}
+    let tot=0,acc=0;
+    for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];const seg=Math.hypot(b[0]-a[0],b[1]-a[1]);tot+=seg;if(i<bi)acc+=seg;}
+    return tot>0?(acc/tot):null;
+  }
+  function applyTrackData(d){
+    try{
+      const raw=(d&&d.trazado&&d.trazado.puntos)||[];
+      if(raw.length<3){ clearCustomTrack(); return false; }
+      const W=800,H=Math.max(200,Math.round(800*((d.imgH||600)/(d.imgW||800))));
+      // rotar para que el recorrido empiece en META (frac 0 = línea de meta)
+      let pts=raw.slice();
+      const mf=_fracOf(pts,d.meta&&d.meta.length?d.meta:null);
+      if(mf!=null){ const k=Math.round(mf*pts.length)%pts.length; pts=pts.slice(k).concat(pts.slice(0,k)); }
+      const sc=pts.map(p=>[p[0]*W,p[1]*H]);
+      let dd='M'+sc[0][0].toFixed(1)+' '+sc[0][1].toFixed(1);
+      for(let i=1;i<sc.length;i++)dd+=' L'+sc[i][0].toFixed(1)+' '+sc[i][1].toFixed(1);
+      if(d.trazado.cerrado!==false)dd+=' Z';
+      const p=document.getElementById('trkpath'),svg=document.getElementById('trk');
+      if(!p||!svg)return false;
+      p.setAttribute('d',dd); svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+      // sectores -> fracciones acumuladas (meta = 0)
+      let cum=null;
+      if(d.sectores&&d.sectores.length){
+        const fr=d.sectores.map(sp=>_fracOf(pts,sp)).filter(x=>x!=null).sort((a,b)=>a-b);
+        if(fr.length)cum=[0].concat(fr);
+      }
+      _customTrk={W,H,cx:W/2,cy:H/2}; _trkCum=cum; _ovalCY=H/2;
+      _trk=null; try{trkInit();}catch(_){}
+      try{renderCircuit();}catch(_){}
+      return true;
+    }catch(e){ return false; }
+  }
+  function clearCustomTrack(){
+    _customTrk=null;_trkCum=null;_ovalH=0;
+    const p=document.getElementById('trkpath'),svg=document.getElementById('trk');
+    if(p)p.setAttribute('d',_OVAL_D); if(svg)svg.setAttribute('viewBox','0 0 120 520');
+    _trk=null; try{trkInit();}catch(_){} try{sizeOval();}catch(_){} try{renderCircuit();}catch(_){}
+  }
+  async function fillTrackSel(){
+    const sel=document.getElementById('trksel'); if(!sel)return;
+    if(location.protocol==='file:'||!location.host){ sel.style.display='none'; return; }
+    try{
+      const r=await fetch('/api/tracks'); const j=await r.json(); const list=(j&&j.tracks)||[];
+      const cur=sel.value;
+      sel.innerHTML='<option value="">Óvalo</option>'+list.map(t=>`<option value="${t.id}">${(t.name||'Circuito').replace(/</g,'')}</option>`).join('');
+      const want=(window.__mrpMem&&window.__mrpMem['track_sel'])||cur||'';
+      if(want&&list.some(t=>t.id===want)){ sel.value=want; if(!_customTrk)loadTrack(want); }
+    }catch(_){ }
+  }
+  async function loadTrack(id){
+    if(!id){ clearCustomTrack(); return; }
+    try{ const r=await fetch('/api/tracks?id='+encodeURIComponent(id)); const j=await r.json(); if(j&&j.data)applyTrackData(j.data); }catch(_){}
+  }
+  { const _ts=document.getElementById('trksel'); if(_ts)_ts.addEventListener('change',e=>{ const v=e.target.value; try{window.storage.set('track_sel',v,false);}catch(_){} loadTrack(v); }); }
+
   function sizeOval(){
+    if(_customTrk)return;                       // hay trazado propio cargado: no tocar
     const svg=document.getElementById('trk');if(!svg)return;
     const r=svg.getBoundingClientRect();if(r.width<8||r.height<8)return;
     let H=Math.round(120*r.height/r.width);H=Math.max(300,Math.min(2400,H));
@@ -1173,7 +1546,7 @@
   let kartInfoOpen=false,kartInfoKid=null;
   function kartInfoHTML(kid){
     const k=karts[kid-1],st=(k&&k.stints)?k.stints:[];
-    const note=(k&&k.pct!=null)?k.pct.toFixed(0):'—';
+    const note=(function(){const n=kartNote(kid);return n==null?'—':fmtNote(n);})();
     let rows='',n=0;
     st.forEach(s=>{n++;rows+=`<div class="kinfo-row"><span class="ki-no">T${n}</span><span class="ki-team"><b>#${s.dorsal}</b> ${s.name}</span><span class="ki-avg">${s.avg!=null?fmtLap(s.avg):'—'}</span><span class="ki-dur">${mmss(s.dur)}</span></div>`;});
     const cur=teams.find(t=>t.kart===kid&&!t.inPit);
@@ -1202,13 +1575,13 @@
   const COLS={
     pos:{label:'Pos',cls:'pos',get:(t,c)=>c.i+1},
     num:{label:'#',cls:'l',get:(t,c)=>`${c.fl}<span class="dorsal">${t.dorsal}</span>`},
-    team:{label:'Equipo',cls:'l',get:(t)=>`<span class="tname${(t._nameGreen&&sessionKind()==='carrera')?' xgreen':''}" data-team="${t.dorsal}">${t.name}</span><span class="ontrack">${t.retired?'<span style="color:var(--dim)">retirado</span>':(t.waitKart&&t.inPit?`<span style="color:var(--amber)">esperando kart · ${mmss(now-t.pitStart)}</span>`:t.inPit?`<span style="color:var(--cyan)">boxes</span>`:drv(t).name)}</span>`},
+    team:{label:'Equipo',cls:'l',get:(t)=>`${(t._nameGreen&&sessionKind()==='carrera')?'<span class="xgdot" title="Acaba de cruzar meta"></span>':''}<span class="tname" data-team="${t.dorsal}">${t.name}</span><span class="ontrack">${t.retired?'<span style="color:var(--dim)">retirado</span>':(t.waitKart&&t.inPit?`<span style="color:var(--amber)">esperando kart · ${mmss(now-t.pitStart)}</span>`:t.inPit?`<span style="color:var(--cyan)">boxes</span>`:drv(t).name)}</span>`},
     driver:{label:'Fiable',cls:'l colfiable',get:(t,c)=>c.dchip||'<span class="muted">—</span>'},
     turno:{label:'Turno',cls:'',get:(t,c)=>c.turno},
     gap:{label:'Gap',cls:'',get:(t,c)=>c.gapcell},
     int:{label:'Int',cls:'',get:(t,c)=>c.intcell},
-    last:{label:'Última',cls:'',get:(t)=>{if(!t.last)return '—';const sh=(apexMode&&t._lastTxt)?t._lastTxt:fmtLap(t.last);if(recordBest<Infinity&&t.last<recordBest-1.5)return `<span style="color:var(--dim)">${sh}</span>`;if(t.last<=recordBest+1e-6)return `<b style="color:var(--purple)">${sh}</b>`;const ref=(recordBest<Infinity)?recordBest:t.last,f=clamp((t.last-ref)/gradInt(),0,1);return `<span style="color:${lapColor(f)}">${sh}</span>`;}},
-    avg:{label:'Media turno',cls:'',get:(t)=>{const v=stintAvg(t);if(v==null)return '<span style="color:var(--dim)">—</span>';const f=clamp((v-avgMin)/gradInt(),0,1);return `<span style="color:${lapColor(f)}">${fmtLap(v)}</span>`;}},
+    last:{label:'Última',cls:'',get:(t)=>{if(!t.last)return '—';const sh=(apexMode&&t._lastTxt)?t._lastTxt:fmtLap(t.last);if(recordBest<Infinity&&t.last<recordBest-1.5)return `<span style="color:var(--dim)">${sh}</span>`;if(t.last<=recordBest+1e-6)return `<b style="color:var(--purple)">${sh}</b>`;const ref=(recordBest<Infinity)?recordBest:t.last,f=clamp((t.last-ref)/gradInt(),0,1);return `<span style="color:${liveColor(f)}">${sh}</span>`;}},
+    avg:{label:'Media turno',cls:'',get:(t)=>{const v=stintAvg(t);if(v==null)return '<span style="color:var(--dim)">—</span>';const f=clamp((v-avgMin)/gradInt(),0,1);return `<span style="color:${liveColor(f)}">${fmtLap(v)}</span>`;}},
     best:{label:'Mejor',cls:'',get:(t)=>{if(!(t.best<Infinity))return '—';const sh=(apexMode&&t._bestTxt)?t._bestTxt:fmtLap(t.best);return t.best<=recordBest+1e-6?`<b style="color:var(--purple)">${sh}</b>`:sh;}},
     kart:{label:'Nota kart',cls:'',get:(t,c)=>c.kcell},
     laps:{label:'Vue',cls:'',get:(t)=>t.laps},
@@ -1246,8 +1619,45 @@
   let recordBest=Infinity,lastMin=Infinity,lastMax=0,avgMin=Infinity,avgMax=0,lastRedAnchor=0;
   function render(){ if((kdrag||_resizing)&&Date.now()-_dragBusyT<8000)return;
     {const tb=document.getElementById('topbase');if(tb&&document.activeElement!==tb)tb.value=BASE;}
-    {const _tr=document.getElementById('towrec');if(_tr){const _rt=recommendedTow();_tr.textContent=_rt!=null?('rec '+_rt.toFixed(2)+'s'):'';_tr.title=_rt!=null?'Recomendado por los datos: mismo kart, vueltas limpias vs con rebufo':'Aún sin datos suficientes';}}
+    {const _tr=document.getElementById('towrec');if(_tr){
+      if(trackSlow()){ _tr.textContent='rec 0.00s'; _tr.style.color='var(--cyan)';
+        _tr.title='PISTA MOJADA / NO REPRESENTATIVA: en mojado no hay rebufo (ir detrás de otro estorba más que ayuda). Se recomienda 0. Cuando la pista vuelva a estar bien, se recupera el valor calculado con las vueltas en seco.'; }
+      else { const _rt=recommendedTow(); _tr.style.color='';
+        _tr.textContent=_rt!=null?('rec '+_rt.toFixed(2)+'s'):'';
+        _tr.title=_rt!=null?'Recomendado por los datos: mismo equipo y mismo kart en el mismo turno, sus mejores vueltas limpias contra sus mejores vueltas con rebufo':'Aún sin datos suficientes'; }
+    }}
     {const _rp=document.getElementById('topracepace');if(_rp){const _pv=racePace();_rp.textContent=_pv!=null?_pv.toFixed(3):'—';}}
+    try{ updateTrackState();
+      // Al entrar en PISTA LENTA el campo Rebufo se pone a 0 solo (en mojado no hay rebufo).
+      // Al salir, se recupera el valor que tenias. Vale igual si lo fuerzas tu con el boton.
+      { const _wet=trackSlow();
+        if(window.__mrpWetPrev===undefined)window.__mrpWetPrev=false;
+        if(_wet!==window.__mrpWetPrev){
+          const _rb=document.getElementById('toprebufo');
+          if(_rb){
+            if(_wet){ window.__mrpTowSaved=_rb.value; _rb.value='0'; }
+            else if(window.__mrpTowSaved!=null){ _rb.value=window.__mrpTowSaved; window.__mrpTowSaved=null; }
+            _rb.disabled=_wet;
+            _rb.title=_wet?'Pista mojada: el rebufo se pone a 0 automáticamente. Al volver la pista buena se recupera tu valor.'
+                          :'Ganancia de rebufo (s): cuánto más rápido se rueda cogiendo rebufo. Afecta a la nota del kart.';
+            try{ if(window.__mrpSync)window.__mrpSync(); }catch(_){}
+          }
+          window.__mrpWetPrev=_wet;
+        }
+      }
+      { const _tb=document.querySelector('.top'); if(_tb)_tb.classList.toggle('wetbar',trackSlow()); }
+      const _ts=document.getElementById('trackstate');
+      if(_ts){ const on=trackSlow(), ref=paceRef(), pv=racePace();
+        const forz=_trackMode!=='auto';
+        _ts.style.display=(on||forz)?'':'none';
+        _ts.textContent=(_trackMode==='dry'?'☀ seco (fijo)':(_trackMode==='wet'?'☔ pista lenta (fijo)':'☔ pista lenta'));
+        _ts.style.color=on?'var(--cyan)':'var(--dim)';
+        _ts.style.borderColor=on?'var(--cyan)':'';
+        _ts.title='Estado de la pista: '+(on?'NO representativa (lluvia, coche de seguridad): no se aplica el rebufo y estas vueltas no cuentan para el rebufo recomendado':'normal')
+          +(ref!=null&&pv!=null?('\nRitmo ahora '+pv.toFixed(3)+' · mejor de la carrera '+ref.toFixed(3)+' · diferencia '+(pv-ref).toFixed(2)+'s'):'')
+          +'\nClic: automático → forzar seco → forzar lluvia';
+      }
+    }catch(_){}
     recordBest=Math.min(Infinity,...teams.map(t=>t.best).filter(x=>x<Infinity));
     lastMin=Infinity;lastMax=0;teams.forEach(t=>{if(t.last>0&&!t.inPit){if(t.last<lastMin)lastMin=t.last;if(t.last>lastMax)lastMax=t.last;}});
     // ancla del gradiente de última: VERDE = mejor vuelta limpia de la carrera (récord); ROJO = la más lenta del campo,
@@ -1269,7 +1679,8 @@
       // progreso en VUELTAS (vueltas completadas + fracción de la vuelta en curso) para la posición virtual
       const lapProg=apexMode?(t.laps+(t.inPit?0:Math.min(1,(t.lapT||0)/(t.target||vRef||1)))):progress(t);
       const rem=Math.max(0,DEMO_MAND-t.stops);
-      t._virt=lapProg-(rem*PIT_STAT/vRef);            // vueltas − (paradas que faltan × tiempo de boxes en vueltas): mismas unidades
+      const _pc=(apexMode?pitCost():null);
+      t._virt=lapProg-(rem*(_pc?_pc.laps:(PIT_STAT/vRef)));   // vueltas − (paradas pendientes × coste de parada EN VUELTAS)
     });
     const _vs=arr.slice().sort((a,b)=>b._virt-a._virt);const vrank={};_vs.forEach((t,i)=>vrank[t.dorsal]=i+1);
     arr.sort((a,b)=>(sortMode==='real'?b._real-a._real:b._virt-a._virt));
@@ -1282,11 +1693,13 @@
     let html='';
     arr.forEach((t,i)=>{
       const p=sortMode==='real'?t._real:t._virt,gap=(leadProg-p)*vRef,gapL=(realLead-t._real)*vRef;
-      const pct=kpct(t.kart),col=pct==null?'#333b48':scoreColor(pct);
-      const kprov=karts[t.kart-1]&&karts[t.kart-1].prov&&pct!=null;
-      const bar=showBar?`<span class="kbar"><i style="width:${pct||0}%;background:${col}"></i></span>`:'';
+      const _knb=(mode==='auto')?stintNote(t):kartNote(t.kart);
+      const _knf=(_knb==null||bestKN==null)?null:clamp((_knb-bestKN)/knInt(),0,1);
+      const col=(_knf==null)?'#333b48':(((mode==='auto')?trackSlow():kartNoteWet(t.kart))?wetColor(_knf):lapColor(_knf));
+      const kprov=karts[t.kart-1]&&karts[t.kart-1]._noteBacked===false&&_knb!=null;
+      const bar=showBar?`<span class="kbar"><i style="width:${_knf==null?0:Math.round((1-_knf)*100)}%;background:${col}"></i></span>`:'';
       const _kn=(mode==='auto')?stintNote(t):kartNote(t.kart);
-      const _knc=_kn==null?'var(--dim)':lapColor(clamp((_kn-(bestKN!=null?bestKN:_kn))/knInt(),0,1));
+      const _knc=noteColor(_kn,(mode==='auto')?trackSlow():kartNoteWet(t.kart));
       const _bk=karts[t.kart-1]&&karts[t.kart-1]._noteBacked; const kcell=`<span class="kchip kclick" data-kartinfo="${t.kart}" title="Ver vueltas de este kart · nota = media de las mejores vueltas limpias · * = aún sin validar por un fiable"><span class="kpct" style="color:${_knc}">${_kn==null?'—':fmtNote(_kn)+(_bk?'':'<span style="color:var(--amber)">*</span>')}</span></span>`;
       const d=drv(t),dp=drvShown(d),dcol=dp==null?'var(--dim)':scoreColor(dp);
       const _rel=reliableSet.has(t.dorsal); const dchip=showDrv?`<span class="reltick${_rel?' on':''}" data-reltick="${t.dorsal}" title="Fiable: márcalo si te fías de las vueltas de este equipo/piloto (para la nota del kart)">${_rel?'✓':''}</span>`:'';
@@ -1306,7 +1719,7 @@
       const gm=grpMap[t.dorsal]||{},grpc=gm.col||'transparent';
       const flashA=(apexMode&&t._flashAt)?Math.max(0,1-(performance.now()-t._flashAt)/520)*0.55:0;
       const flashStyle=flashA>0.01?`;box-shadow:inset 0 0 0 9999px rgba(55,214,122,${flashA.toFixed(2)})`:'';
-      html+=`<tr data-dorsal="${t.dorsal}" class="lprow ${t.retired?'retired ':''}${t.inPit?'inpit ':''}${t.you?'you ':''}${infraction(t)?'penal':''}${String(t.dorsal)===hoverDorsal?' hov':''}" style="--lap:${lapPct.toFixed(1)}%;--grp:${grpc}${flashStyle}">${cells}</tr>`;
+      html+=`<tr data-dorsal="${t.dorsal}" class="lprow ${(gm.role==='giver')?'ggiver ':''}${t.retired?'retired ':''}${t.inPit?'inpit ':''}${t.you?'you ':''}${infraction(t)?'penal':''}${String(t.dorsal)===hoverDorsal?' hov':''}" style="--lap:${lapPct.toFixed(1)}%;--grp:${grpc}${flashStyle}">${cells}</tr>`;
     });
     tbody.innerHTML=html;
     renderCircuit();
@@ -1318,7 +1731,7 @@
     const _usedSet=(mode==='manualnr'&&_youT&&_youT.usedKarts&&_youT.usedKarts.length)?new Set(_youT.usedKarts):null;
     rows.forEach((r,ri)=>{
       const lab=`<div class="rlab" style="background:${ROW_COL[ri%ROW_COL.length]};color:#0b0e13">${ri+1}</div>`;
-      let q='';r.forEach((id,idx)=>{const _kn=kartNote(id),col=(_kn==null)?'#3a4250':lapColor(clamp((_kn-(bestKN!=null?bestKN:_kn))/knInt(),0,1));
+      let q='';r.forEach((id,idx)=>{const _kn=kartNote(id),col=(_kn==null)?'#3a4250':kNoteColor(id,'#3a4250');
         const ed=editMode?`<button class="ksub" data-sub="${ri},${idx}" title="Eliminar kart">⤬</button>`:'';
         const covered=mode==='auto';
         const w=karts[id-1]&&karts[id-1].drop;
@@ -1333,12 +1746,12 @@
       const bx=document.getElementById('boxes');bx.className='boxes '+(orient==='vert'?'vert':'horiz')+(boxRot?' rot':'');bx.style.setProperty('--bw',boxW+'px');bx.style.setProperty('--bh',boxH+'px');bx.innerHTML=bh;
       let strip='',tlist='',autohdr='';
       if(mode!=='auto'){
-        const chips=holding.map((h,hi)=>{const _kn=kartNote(h.kart),c=(_kn==null)?'#7c8794':lapColor(clamp((_kn-(bestKN!=null?bestKN:_kn))/knInt(),0,1));const _ht=teams.find(x=>x.dorsal===h.dorsal),_or=!!(_ht&&_ht.exitUnassigned&&_ht.waitKart);return `<div class="pchip${_or?' orange':''}" data-hold="${hi}" title="Arrástralo a una fila de cambio"><span class="pinfo"><span class="pd">${h.dorsal}</span><span class="pnm">${cutName(h.name)}</span></span><span class="pq" style="color:${c}">${_kn==null?'—':fmtNote(_kn)}</span>${h.pitAt?`<span class="pt" style="font-size:10px;color:#7c8794;margin-left:4px">⏱ ${mmss(now-h.pitAt)}</span>`:''}</div>`;}).join('');
+        const chips=holding.map((h,hi)=>{const _kn=kartNote(h.kart),c=(_kn==null)?'#7c8794':kNoteColor(h.kart,'#7c8794');const _ht=teams.find(x=>x.dorsal===h.dorsal),_or=!!(_ht&&_ht.exitUnassigned&&_ht.waitKart);return `<div class="pchip${_or?' orange':''}" data-hold="${hi}" title="Arrástralo a una fila de cambio"><span class="pinfo"><span class="pd">${h.dorsal}</span><span class="pnm">${cutName(h.name)}</span></span><span class="pq" style="color:${c}">${_kn==null?'—':fmtNote(_kn)}</span>${h.pitAt?`<span class="pt" style="font-size:10px;color:#7c8794;margin-left:4px">⏱ ${mmss(now-h.pitAt)}</span>`:''}</div>`;}).join('');
         strip=`<div class="hlbl cyan">Cola de repostaje — ${mode==='autodirect'?'suéltalos en una fila (van solos al equipo que espera)':'arrástralos a una fila'}</div><div class="holdstrip ${holding.length?'':'empty'}">${holding.length?chips:'<span class="hhint">Cuando un equipo para, su kart cae aquí.</span>'}</div>`;
         const waiting=teams.filter(t=>(t.inPit&&(t.placed||!t.waitKart))||(t.exitUnassigned&&t.waitKart&&t.placed)||(t._filledAt&&(Date.now()-t._filledAt<2500)&&!t.inPit)).sort((a,b)=>(a.pitSeq||0)-(b.pitSeq||0));
         const tw=waiting.map(t=>{const el=pitClock(t);if(t.waitKart)
           return `<div class="twait${t.exitUnassigned?' orange':''}" data-twait="${t.dorsal}" title="${mode==='autodirect'?'Cogerá kart al soltar uno en una fila':'Arrástrale un kart de una fila'}"><span class="kd">${t.dorsal}</span><span class="tn">${cutName(t.name)}</span><span class="twt">${el}</span></div>`;
-          const np=kartNote(t.kart),nc=np==null?'#7c8794':lapColor(clamp((np-(bestKN!=null?bestKN:np))/knInt(),0,1)),rev=!!t.takeUndo,_fade=t._filledAt&&(Date.now()-t._filledAt<2500)&&!t.inPit,_fop=_fade?Math.max(0,1-(Date.now()-t._filledAt)/2500):1;
+          const np=kartNote(t.kart),nc=np==null?'#7c8794':kNoteColor(t.kart,'#7c8794'),rev=!!t.takeUndo,_fade=t._filledAt&&(Date.now()-t._filledAt<2500)&&!t.inPit,_fop=_fade?Math.max(0,1-(Date.now()-t._filledAt)/2500):1;
           return `<div class="twait done${rev?' rev':''}${_fade?' filling':''}"${_fade?` style="opacity:${_fop.toFixed(2)}"`:''}${rev?` data-twaitback="${t.dorsal}" title="Arrástralo a una fila para deshacer"`:''}><span class="kd">${t.dorsal}</span><span class="tn">${cutName(t.name)}</span><span class="twq" style="color:${nc}">${np==null?'—':fmtNote(np)}</span><span class="twt pitbig" title="Cronómetro de la parada en boxes">⏱ ${el}</span></div>`;}).join('');
         tlist=`<div class="hlbl amber">Fila de salida de boxes${mode==='autodirect'?' — el 1º coge el kart que sueltes':''}</div><div class="twaitwrap ${waiting.length?'':'empty'}">${waiting.length?tw:'<span class="hhint">Aparecerán aquí al parar y se van al salir de boxes.</span>'}</div>`;
       }else{
@@ -1350,7 +1763,7 @@
         const tot=goodBox+badBox,pB=tot>0?clamp(Math.round(100*goodBox/tot),0,100):50;
         autohdr=`<div class="autoest"><div class="aerow"><span style="color:#37d67a">≈ ${pB}% buenos</span><span style="color:#ff5d5d">≈ ${100-pB}% malos</span></div><div class="aebar"><i style="width:${pB}%;background:#22a866"></i><i style="width:${100-pB}%;background:#c43a34"></i></div><div class="aenote">En pista: ${goodTrack} buenos · ${badTrack} flojos (máx visto ${apex._maxGood||0}/${apex._maxBad||0}) · en boxes ≈${goodBox} buenos, ${badBox} flojos</div></div>`;
       }
-      const _bxw=document.querySelector('.boxwrap');if(_bxw){_bxw.classList.toggle('rotw',boxRot);_bxw.classList.toggle('editing',editMode);}const _sm=document.getElementById('sortmargin');if(_sm)_sm.disabled=!editMode;const _smw=document.getElementById('sortmarginwrap');if(_smw)_smw.style.opacity=editMode?'1':'.5';
+      const _bxw=document.querySelector('.boxwrap');if(_bxw){_bxw.classList.toggle('rotw',boxRot);_bxw.classList.toggle('samey',boxSame);_bxw.classList.toggle('editing',editMode);}const _sm=document.getElementById('sortmargin');if(_sm)_sm.disabled=!editMode;const _smw=document.getElementById('sortmarginwrap');if(_smw)_smw.style.opacity=editMode?'1':'.5';const _se=document.getElementById('sortedit');if(_se)_se.style.display=editMode?'flex':'none';
       const _bb=document.getElementById('boxbelow');if(_bb)_bb.classList.toggle('est',mode==='auto');
       if(mode==='auto'){document.getElementById('bx_top_c').innerHTML=autohdr;document.getElementById('bx_bot_c').innerHTML='';}
       else{document.getElementById('bx_top_c').innerHTML=boxRot?strip:tlist;document.getElementById('bx_bot_c').innerHTML=boxRot?tlist:strip;}
@@ -1359,6 +1772,7 @@
     if(typeof reflowBoxes==='function')reflowBoxes();
     const hpb=document.getElementById('holdpos');if(hpb)hpb.style.display='none';
     const fd=document.getElementById('boxrot');if(fd){fd.style.display=mode==='auto'?'none':'';fd.classList.toggle('on',boxRot);}
+    {const bs=document.getElementById('boxside');if(bs){bs.style.display=mode==='auto'?'none':'';bs.classList.toggle('on',boxSame);}}
 
     // panel antiguo de entradas (sustituido por la tira arrastrable)
     document.getElementById('pendpanel').style.display='none';
@@ -1374,6 +1788,7 @@
 
     // semaphore
     const you=teams.find(t=>t.you);
+    if(!you){ try{ const _mh=document.getElementById('mehdr'); if(_mh)_mh.textContent='Tu equipo'; const _s=document.getElementById('sem'); if(_s&&!(document.activeElement&&document.activeElement.classList&&document.activeElement.classList.contains('ehin'))) _s.innerHTML='<div class="seghead">Sin equipo seleccionado</div><div class="muted" style="font-size:12px;padding:10px 2px;line-height:1.6">Elige tu equipo en <b>Opciones \u2192 Mi equipo</b> (arriba a la derecha) para ver aqu\u00ed su <b>nota</b>, sus <b>turnos y paradas</b> y el <b>plan</b>.</div>'; }catch(_){} }
     if(you){ const de=youDecision(you),cp=kpct(you.kart),cc=cp==null?'var(--dim)':scoreColor(cp);
     document.getElementById('mehdr').textContent='Tu equipo · #'+me;
     const top5=teams.slice().sort((a,b)=>progress(b)-progress(a)).slice(0,5).filter(t=>t.last>0);
@@ -1394,13 +1809,13 @@
     if(noRepeat&&you.drivers.length<2)warns.push('Modo "no repetir piloto" activo pero el equipo tiene un solo piloto.');
     const warnHtml=warns.length?`<div class="warns">${warns.map(w=>`<div class="warn">⚠ ${w}</div>`).join('')}</div>`:'';
     if(!(document.activeElement&&document.activeElement.classList&&document.activeElement.classList.contains('ehin'))) document.getElementById('sem').innerHTML=`<div class="seghead">Tu equipo · #${me}</div>
-      <div class="segrow"><div class="bignote" style="color:${cc}">${cp==null?'—':cp.toFixed(0)+'<i>%</i>'}</div>
+      <div class="segrow"><div class="bignote" style="color:${noteColor(kartNote(you.kart),kartNoteWet(you.kart))};font-size:38px">${(function(){const n=kartNote(you.kart);return n==null?'—':fmtNote(n);})()}</div>
       <div class="segturno"><div class="sl">${you.inPit?'En boxes':'Turno'}</div><div class="sv">${you.inPit?'boxes · '+pitClock(you):mmss(now-you.stintStart)}</div></div></div>
       <div class="ttrow"><span>Tiempo de turno</span><span>máx ${mmss(MAX_STINT)}</span></div>
       <div class="ttbar"><i style="width:${ttFrac*100}%;background:${ttCol}"></i></div>
       <div class="ttrow" style="margin-top:10px"><span>Paradas ${you.stops}/${Nman}</span><span>Turnos ${(you.history||[]).filter(h=>h.type==='stint').length+(you.inPit?0:1)}</span></div>
-      <div class="semstints">${(function(){let sc=0,pc=0,o='';(you.history||[]).forEach(function(h,i){if(h.type==='stint'){sc++;o+='<div class="hrow ehrow" data-eh="'+i+'"><span class="htag">Turno '+sc+'</span><span class="hdur">'+mmss(h.dur)+(h.avg!=null?' <span class="muted">· med '+fmtLap(h.avg)+'</span>':'')+'</span></div>';}else{pc++;o+='<div class="hrow pit ehrow" data-eh="'+i+'"><span class="htag">Parada '+pc+'</span><span class="hdur">'+mmss(h.dur||0)+'</span></div>';}});if(!you.inPit){sc++;o+='<div class="hrow cur"><span class="htag">Turno '+sc+'</span><span class="hdur">'+mmss(now-you.stintStart)+' <span class="muted">en curso</span></span></div>';}var _pf=window.__mrpPlanF;if(_pf&&_pf.durs&&_pf.durs.length){o+='<div class="hrow" style="border-top:2px dashed #1b212c;margin-top:4px"><span class="htag" style="color:var(--dim)">Plan futuro</span><span class="hdur muted">'+_pf.remStops+' paradas</span></div>';_pf.durs.forEach(function(d){o+='<div class="hrow pit" style="opacity:.7"><span class="htag">Parada</span><span class="hdur muted">'+mmss(_pf.pitT)+'</span></div>';sc++;o+='<div class="hrow" style="opacity:.7"><span class="htag">Turno '+sc+'</span><span class="hdur muted">'+mmss(d)+'</span></div>';});}return o||'<div class="muted" style="font-size:11px;padding:4px 0">Sin turnos aún.</div>';})()}</div>${warnHtml}`;
-
+      <div class="semwrap"><div class="sstcol" id="sstcol"></div><div class="seminfo">${warnHtml||''}</div></div>`;
+    try{ renderStintCol(you); }catch(_){}
     }
     if(selected!=null){const _t=teams.find(x=>x.dorsal===selected);
       if(_t){const ae=document.activeElement,editing=ae&&ae.classList&&ae.classList.contains('manrate');const k=modalSig(_t);
@@ -1411,13 +1826,15 @@
     drawChart();
   }
 
-  function youDecision(t){const cur=kpct(t.kart),el=now-t.stintStart,fronts=rows.map(r=>kpct(r[0])).filter(x=>x!=null),bf=fronts.length?Math.max(...fronts):null;
+  function youDecision(t){const cur=kartNote(t.kart),el=now-t.stintStart,_best=bestKartNote(),_iv=knInt();
+    const fronts=rows.map(r=>kartNote(r[0])).filter(x=>x!=null),bf=fronts.length?Math.min(...fronts):null;
     if(finalized)return{light:'FIN',color:'var(--amber)',reason:'Carrera terminada.'};
     if(t.inPit)return{light:'EN BOXES',color:'var(--cyan)',reason:'Cambio en curso.'};
     if(cur==null||el<6)return{light:'RECOPILANDO',color:'var(--dim)',reason:'Aún sin datos suficientes de tu kart.'};
     if(el>=MAX_STINT)return{light:'PARAR YA',color:'var(--amber)',reason:'Llegaste al turno máximo: hay que cambiar.'};
-    if(cur>=58)return{light:'NO PARAR',color:scoreColor(cur),reason:'Llevas un kart bueno ('+cur.toFixed(0)+'%). Estíralo hasta el máximo.'};
-    if(cur<42&&el>=MIN_STINT){let ex=(bf!=null&&bf>cur+12)?' Las filas tienen un kart mejor delante.':'';return{light:'PARAR',color:scoreColor(cur),reason:'Kart flojo ('+cur.toFixed(0)+'%) y ya pasaste el mínimo.'+ex};}
+    const _d=(_best!=null)?(cur-_best):null;
+    if(_d!=null&&_d<=_iv*0.35)return{light:'NO PARAR',color:noteColor(cur,kartNoteWet(you.kart)),reason:'Llevas un kart bueno ('+fmtNote(cur)+(_d>0.01?', a +'+_d.toFixed(1)+'s del mejor':', el mejor')+'). Estíralo hasta el máximo.'};
+    if(_d!=null&&_d>=_iv*0.75&&el>=MIN_STINT){let ex=(bf!=null&&bf<cur-_iv*0.4)?' Las filas tienen un kart mejor delante.':'';return{light:'PARAR',color:noteColor(cur,kartNoteWet(you.kart)),reason:'Kart flojo ('+fmtNote(cur)+', a +'+_d.toFixed(1)+'s del mejor) y ya pasaste el mínimo.'+ex};}
     return{light:'ESPERAR',color:'var(--cyan)',reason:'Kart intermedio. Vigila las filas y tu ventana.'};}
 
   function modalSig(t){return selected+'|'+t.laps+'|'+t.history.length+'|'+t.di+'|'+t.kart+'|'+(t.inPit?1:0)+'|'+t.penalties.map(p=>p.id+(p.served?1:0)).join(',')+'|'+t.drivers.map(d=>(d.man==null?'':d.man)+(d.lock?'L':'')).join(',');}
@@ -1435,29 +1852,29 @@
     const Nman=Math.max(1,+document.getElementById('cf_stops').value||17);
     let sc=0,pcn=0;const items=t.history.map(h=>h.type==='stint'?{...h,no:++sc}:{...h,no:++pcn});
     const disp=[];
-    if(!t.inPit){const pct=kpct(t.kart),col=pct==null?'var(--dim)':scoreColor(pct);const _csl=t.stintLaps||[];const _cavg=_csl.length?_csl.reduce((a,b)=>a+b,0)/_csl.length:null;
-      disp.push(`<div class="hrow cur"><span class="htag">Turno ${sc+1}</span><span class="kbadge" style="border-color:${col};color:${col}">${pct==null?'—':pct.toFixed(0)}</span><span class="hdur"><span id="ms_live">${mmss(now-t.stintStart)}</span> <span class="muted">en curso${_cavg!=null?' · med '+fmtLap(_cavg):''}</span></span></div>`);}
+    if(!t.inPit){const _n=kartNote(t.kart),col=noteColor(_n,kartNoteWet(t.kart));const _csl=t.stintLaps||[];const _cavg=_csl.length?_csl.reduce((a,b)=>a+b,0)/_csl.length:null;
+      disp.push(`<div class="hrow cur"><span class="htag">Turno ${sc+1}</span><span class="kbadge" style="border-color:${col};color:${col}">${_n==null?'—':fmtNote(_n)}</span><span class="hdur"><span id="ms_live">${mmss(now-t.stintStart)}</span> <span class="muted">en curso${_cavg!=null?' · med '+fmtLap(_cavg):''}</span></span></div>`);}
     for(let k=items.length-1;k>=0;k--){const h=items[k];
       if(h.type==='pit'){const lo=h.dur<pm;disp.push(`<div class="hrow pit ${lo?'short':''}"><span class="htag">Parada ${h.no}</span><span class="hdur">${mmss(h.dur)}${lo?' ⚠':''}</span></div>`);}
-      else{const pct=kpct(h.kart),col=pct==null?'var(--dim)':scoreColor(pct);
-        disp.push(`<div class="hrow"><span class="htag">Turno ${h.no}</span><span class="kbadge" style="border-color:${col};color:${col}">${pct==null?'—':pct.toFixed(0)}</span><span class="hdur">${mmss(h.dur)}${h.avg!=null?' <span class="muted">· med '+fmtLap(h.avg)+'</span>':''}</span></div>`);}}
-    let hist=disp.slice(0,20).join('');
+      else{const _n=kartNote(h.kart),col=noteColor(_n,kartNoteWet(h.kart));
+        disp.push(`<div class="hrow"><span class="htag">Turno ${h.no}</span><span class="kbadge" style="border-color:${col};color:${col}">${_n==null?'—':fmtNote(_n)}</span><span class="hdur">${mmss(h.dur)}${h.avg!=null?' <span class="muted">· med '+fmtLap(h.avg)+'</span>':''}</span></div>`);}}
+    let hist=disp.join('');
     if(!hist)hist='<div class="empty">Sin turnos todavía.</div>';
     const bestT=t.best<Infinity?t.best:null;
     let laps=t.lapLog.slice().reverse().map(l=>{const col=l.t===bestT?'var(--cyan)':'var(--txt)';
       return `<div class="laprow"><span class="ln">V${l.lap}</span><span class="lt" style="color:${col}">${fmtLap(l.t)}</span><span class="ld">${l.driver}</span></div>`;}).join('');
     if(!laps)laps='<div class="empty">Sin vueltas todavía.</div>';
-    const card=document.getElementById('card');const _lw=card.querySelector('.lapwrap');const _sl=_lw?_lw.scrollTop:0,_sc=card.scrollTop;
+    const card=document.getElementById('card');const _lw=card.querySelector('.lapwrap');const _hw=card.querySelector('.histwrap');const _sl=_lw?_lw.scrollTop:0,_sh=_hw?_hw.scrollTop:0,_sc=card.scrollTop;
     card.innerHTML=`<div class="ch">${infraction(t)?'<span class="flag">🛑</span>':''}<span class="dorsal">${t.dorsal}</span><span class="nm">${t.name}</span><button id="mclose">✕</button></div>
       <div class="cb"><div class="stat">
         <div class="b"><div class="v">${t.stops}/${Nman}</div><div class="k">Paradas hechas</div></div>
-        <div class="b"><div class="v" style="color:#e8554e">${sr}</div><div class="k">Turnos cortos disp.</div></div>
-        <div class="b"><div class="v" style="color:${cc}">${cp==null?'—':cp.toFixed(0)}</div><div class="k">Nota kart${(()=>{const kk=karts[t.kart-1];if(!kk||cp==null)return '';const n=kk.cleanN||0;return kk.prov?` · <span style="color:var(--amber)">${n} limpia${n===1?'':'s'} (prov.)</span>`:` · ${n} limpias`;})()}</div></div></div>
+        <div class="b"><div class="v" style="color:#e8554e">${sr}</div><div class="k">Turnos cortos disp.</div></div><div class="b"><div class="v">${Math.max(0,Nman-t.stops)+1}</div><div class="k">Turnos restantes</div></div><div class="b"><div class="v" title="Karts que este equipo ya ha soltado">${(t.usedKarts||[]).length}</div><div class="k">Karts descartados</div></div>
+        <div class="b"><div class="v" style="color:${noteColor(kartNote(t.kart),kartNoteWet(t.kart))}">${(function(){const n=kartNote(t.kart);return n==null?'—':fmtNote(n);})()}</div><div class="k">Nota kart${(()=>{const kk=karts[t.kart-1];if(!kk||kartNote(t.kart)==null)return '';const n=kk.cleanN||0;return (kk._noteBacked===false)?` · <span style="color:var(--amber)">${n} limpia${n===1?'':'s'} (sin validar)</span>`:` · ${n} limpias`;})()}</div></div></div>
         <div class="sech">Pilotos${dm>0?' · mín. '+mmss(dm):' · sin mínimo'} <span style="color:var(--dim2);font-weight:400;text-transform:none;letter-spacing:0">· fija la nota (🔓) para afinar la del kart</span></div>${drows}
-        <div class="sech">Historial · turnos y paradas</div>${hist}
+        <div class="sech">Historial · turnos y paradas <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">· ${items.length} registros</span></div><div class="histwrap">${hist}</div>
         <div class="sech">Todas las vueltas (${t.laps})</div><div class="lapwrap">${laps}</div>
         <div class="sech">Sanciones</div>${pens}</div>`;
-    const _nl=card.querySelector('.lapwrap');if(_nl)_nl.scrollTop=_sl;card.scrollTop=_sc;
+    const _nl=card.querySelector('.lapwrap');if(_nl)_nl.scrollTop=_sl;const _nh=card.querySelector('.histwrap');if(_nh)_nh.scrollTop=_sh;card.scrollTop=_sc;
     modalKey=modalSig(t);
   }
   function openModal(d){selected=d;document.getElementById('modal').classList.add('open');renderModal();}
@@ -1477,10 +1894,15 @@
       <div class="ptabwrap">
         <div class="psec">Nota del kart</div>
         <div class="prow"><div class="plbl"><b>Modo de la nota</b><span class="phint">activado: solo vueltas limpias. desactivado: las X mejores (a las de rebufo se les suma el Rebufo)</span></div><div class="pctl"><label class="tog"><input type="checkbox" data-algotgl="PRIOCLEAN" ${PRIOCLEAN?'checked':''}><span>Priorizar limpias</span></label></div></div>
-        ${f('Vueltas para la media','KART_AVG_N',KART_AVG_N,1,15,1,'cuántas de las mejores vueltas limpias se promedian para la nota del kart')}
+        ${f('Vueltas para la media','KART_AVG_N',KART_AVG_N,1,15,1,'Cuántas de las mejores vueltas se promedian para la NOTA de un kart, dentro de cada bloque (mismo equipo + mismo kart + misma condición de pista). AFECTA A: nota del kart, y a cuántas vueltas necesita un equipo fiable para sobrescribir la nota anterior.')}
         <div class="psec">Vuelta limpia (para puntuar)</div>
-        ${f('Hueco mín. por delante','CLEAN_AHEAD',CLEAN_AHEAD,0,6,0.1,'s libres delante para contar como limpia')}
-        ${f('Hueco mín. por detrás','CLEAN_BEHIND',CLEAN_BEHIND,0,6,0.1,'s libres detrás para contar como limpia')}
+        ${f('Hueco mín. por delante','CLEAN_AHEAD',CLEAN_AHEAD,0,6,0.1,'Segundos que debe haber libres POR DELANTE (medido por pasos por meta, contando doblados) para que una vuelta sea limpia. AFECTA A: qué vueltas son limpias o sucias → nota del kart, rebufo recomendado, y los grupos y colores del circuito y las líneas del live timing.')}
+        ${f('Vueltas de boxes a promediar','PIT_N',PIT_N,1,15,1,'Cuántas de las MEJORES vueltas de entrada y de salida de boxes (solo equipos fiables) se promedian para calcular lo que cuesta una parada. AFECTA A: pérdida por parada y POSICIÓN VIRTUAL.')}
+        ${f('Pista lenta: entrar (s)','RAIN_IN',RAIN_IN,1,30,0.5,'Si el ritmo de carrera empeora MÁS de esto respecto al mejor ritmo de toda la carrera, se activa PISTA LENTA (lluvia, coche de seguridad). AFECTA A: barra azul y aviso, el campo Rebufo se pone a 0, las notas se recalculan por separado y esas vueltas no cuentan para el rebufo recomendado.')}
+        ${f('Pista lenta: salir (s)','RAIN_OUT',RAIN_OUT,0,30,0.5,'Cuando el ritmo vuelve a estar por debajo de esto, se desactiva PISTA LENTA. Debe ser MENOR que el de entrar, para que el aviso no parpadee cuando el ritmo ronda el límite. AFECTA A: solo a cuándo se apaga el aviso.')}
+        ${f('Descartar limpias lentas (s)','CLEAN_MAXD',CLEAN_MAXD,0,5,0.1,'Dentro de un mismo turno, una vuelta limpia más lenta que la mejor SUCIA por más de esto se descarta (fue un error del piloto, no el ritmo del kart). 0 = no descartar. AFECTA A: nota del kart y rebufo recomendado.')}
+        ${f('Vueltas para el rebufo recomendado','TOW_N',TOW_N,1,10,1,'De cada turno de equipo fiable, cuántas de sus mejores vueltas limpias se comparan con sus mejores sucias. Si solo sobreviven 2 de un tipo, se comparan 2 contra 2. AFECTA A: solo al rebufo recomendado (el número «rec» al lado del campo Rebufo).')}
+        ${f('Hueco mín. por detrás','CLEAN_BEHIND',CLEAN_BEHIND,0,6,0.1,'Segundos libres POR DETRÁS para que una vuelta sea limpia. Si te empujan, la vuelta es sucia aunque no tengas a nadie delante. AFECTA A: lo mismo que el de delante (nota, rebufo recomendado, grupos y colores).')}
         <div class="palgodoc">
           <h4>Cómo funciona el algoritmo</h4>
           <p><b>Modelo de cada vuelta.</b> El tiempo de una vuelta se compone de: <i>vuelta base</i> + penalización del kart (según su nota) + penalización del piloto (según su nota) + lluvia + evolución de la pista − rebufo + un pequeño ruido aleatorio.</p>
@@ -1517,9 +1939,9 @@
   const DDBK='driverdb';
   function saveDriverDB(){try{const o={};allDrivers.forEach(d=>{if(d.lock&&d.man!=null)o[d.name]=d.man;});window.storage.set(DDBK,JSON.stringify(o),false);}catch(e){}}
   function loadDriverDB(){return window.storage.get(DDBK).then(r=>{if(r&&r.value){const o=JSON.parse(r.value);allDrivers.forEach(d=>{if(o[d.name]!=null){d.man=+o[d.name];d.lock=true;}});}}).catch(()=>{});}
-  const ALGO_DEF={BASE:48,RAINPEN:17,KART_SPREAD:1.0,DRIVER_SPREAD:1.5,KART_AVG_N:5,TOW_MAX:0.5,TOW_NEAR:1.2,TRAFFIC_MAX:0.4,TRAFFIC_NEAR:0.7,CLEAN_AHEAD:2.0,CLEAN_BEHIND:1.5,PRIOCLEAN:1},ALGOK='algocfg';
-  function setAlgo(k,v){switch(k){case'BASE':BASE=v;break;case'RAINPEN':RAINPEN=v;break;case'KART_SPREAD':KART_SPREAD=v;break;case'DRIVER_SPREAD':DRIVER_SPREAD=v;break;case'KART_AVG_N':KART_AVG_N=Math.max(1,Math.round(v));break;case'TOW_MAX':TOW_MAX=v;break;case'TOW_NEAR':TOW_NEAR=v;break;case'TRAFFIC_MAX':TRAFFIC_MAX=v;break;case'TRAFFIC_NEAR':TRAFFIC_NEAR=v;break;case'CLEAN_AHEAD':CLEAN_AHEAD=v;break;case'CLEAN_BEHIND':CLEAN_BEHIND=v;break;case'PRIOCLEAN':PRIOCLEAN=v?1:0;break;}}
-  function saveAlgo(){try{const o={BASE,RAINPEN,KART_SPREAD,DRIVER_SPREAD,KART_AVG_N,TOW_MAX,TOW_NEAR,TRAFFIC_MAX,TRAFFIC_NEAR,CLEAN_AHEAD,CLEAN_BEHIND,PRIOCLEAN};window.storage.set(ALGOK,JSON.stringify(o),false);}catch(e){}}
+  const ALGO_DEF={BASE:48,RAINPEN:17,KART_SPREAD:1.0,DRIVER_SPREAD:1.5,KART_AVG_N:5,TOW_MAX:0.5,TOW_NEAR:1.2,TRAFFIC_MAX:0.4,TRAFFIC_NEAR:0.7,CLEAN_AHEAD:1.0,CLEAN_BEHIND:0.5,PRIOCLEAN:0,TOW_N:5,CLEAN_MAXD:1.0,RAIN_IN:7,RAIN_OUT:4,PIT_N:5,PIT_MODE:'auto'},ALGOK='algocfg';
+  function setAlgo(k,v){switch(k){case'BASE':BASE=v;break;case'RAINPEN':RAINPEN=v;break;case'KART_SPREAD':KART_SPREAD=v;break;case'DRIVER_SPREAD':DRIVER_SPREAD=v;break;case'KART_AVG_N':KART_AVG_N=Math.max(1,Math.round(v));break;case'TOW_MAX':TOW_MAX=v;break;case'TOW_NEAR':TOW_NEAR=v;break;case'TRAFFIC_MAX':TRAFFIC_MAX=v;break;case'TRAFFIC_NEAR':TRAFFIC_NEAR=v;break;case'CLEAN_AHEAD':CLEAN_AHEAD=v;break;case'CLEAN_BEHIND':CLEAN_BEHIND=v;break;case'PRIOCLEAN':PRIOCLEAN=v?1:0;break;case'TOW_N':TOW_N=Math.max(1,Math.round(v));break;case'CLEAN_MAXD':CLEAN_MAXD=v;break;case'RAIN_IN':RAIN_IN=v;break;case'RAIN_OUT':RAIN_OUT=v;break;case'PIT_N':PIT_N=Math.max(1,Math.round(v));break;case'PIT_MODE':PIT_MODE=v;break;}}
+  function saveAlgo(){try{const o={BASE,RAINPEN,KART_SPREAD,DRIVER_SPREAD,KART_AVG_N,TOW_MAX,TOW_NEAR,TRAFFIC_MAX,TRAFFIC_NEAR,CLEAN_AHEAD,CLEAN_BEHIND,PRIOCLEAN,TOW_N,CLEAN_MAXD,RAIN_IN,RAIN_OUT,PIT_N,PIT_MODE};window.storage.set(ALGOK,JSON.stringify(o),false);}catch(e){}}
   function loadAlgo(){return window.storage.get(ALGOK).then(r=>{if(r&&r.value){const o=JSON.parse(r.value);Object.keys(ALGO_DEF).forEach(k=>{if(o[k]!=null&&!isNaN(+o[k]))setAlgo(k,+o[k]);});}}).catch(()=>{});}
   document.getElementById('pmodal').addEventListener('click',e=>{
     if(e.target.id==='pmodal'||e.target.hasAttribute('data-pclose')){closePanel();return;}
@@ -1547,32 +1969,79 @@
   {const tb=document.getElementById('topbase');if(tb){tb.value=BASE;tb.addEventListener('input',()=>{let v=parseFloat(tb.value);if(isNaN(v))return;v=Math.max(0,v);setAlgo('BASE',v);saveAlgo();document.querySelectorAll('[data-algo="BASE"]').forEach(el=>el.value=v);recompute();render();});}}
   document.getElementById('btnkalgo').addEventListener('click',()=>openPanel('kart'));
 
+  // Columna de turnos y paradas (mismo formato que el gestor de boxes).
+  // Se reconstruye SOLO cuando cambia la estructura -> no parpadea y no se pierde el scroll.
+  function renderStintCol(you){
+    const col=document.getElementById('sstcol'); if(!col||!you)return;
+    const P=window.__mrpPlanF||{}, hist=you.history||[];
+    const effMin=P.effMin||0, effMax=P.effMax||1, mid=(effMin+effMax)/2, pitT=P.pitT||0;
+    const inPit=!!you.inPit;
+    const sig=hist.map(h=>h.type[0]+Math.round(h.dur||0)).join(',')+'|'+(inPit?1:0)+'|'+(P.dump||0)+'|'+(P.longN||0)+'|'+Math.round(pitT)+'|'+Math.round(P.balance||0)+'|'+(P.future||[]).map(x=>x.type+Math.round(x.dur)).join(',');
+    const stRow=(cls,gn,lbl,dur,liveId,ehIdx)=>`<div class="sstrow${ehIdx!=null?' ehrow':''}"${ehIdx!=null?` data-eh="${ehIdx}"`:''}><span class="sstn">${gn||''}</span><div class="sst ${cls}"><span class="l">${lbl}</span><span class="hdur"${liveId?` id="${liveId}"`:''}>${dur==null?'—':mmss(Math.max(0,dur))}</span></div></div>`;
+    const piRow=(pn,dur,cls,liveId,ehIdx)=>`<div class="sstrow${ehIdx!=null?' ehrow':''}"${ehIdx!=null?` data-eh="${ehIdx}"`:''}><span class="sstn"></span><div class="sst pit ${cls||''}"><span class="l">Parada ${pn}</span><span class="hdur"${liveId?` id="${liveId}"`:''}>${dur==null?'—':mmss(Math.max(0,dur))}</span></div></div>`;
+    if(col._sig!==sig){
+      col._sig=sig; const keep=col.scrollTop;
+      let h='',sN=0,pN=0;
+      hist.forEach(function(x,i){                                   // ya hechos (numerados y editables)
+        if(x.type==='stint'){ sN++; const isL=(x.dur||0)>=mid; h+=stRow((isL?'long':'short')+' done',sN,isL?'Largo':'Corto',x.dur,null,i); }
+        else { pN++; h+=piRow(pN,x.dur,'done',null,i); }
+      });
+      if(inPit){ pN++; h+=piRow(pN,null,'cur','sstCurPit'); }        // en boxes ahora mismo
+      else { sN++; h+=stRow('cur',sN,'Actual',null,'sstCur'); }      // turno actual, cronometro en vivo
+      const fut=P.future||[]; let shN=0,loN=0,first=true;
+      fut.forEach(function(x){
+        if(!(inPit&&first)){ pN++; h+=piRow(pN,pitT); } first=false;
+        sN++; let lbl,cls;
+        if(x.type==='balance'){ lbl='Desempate'; cls='balance'; }
+        else if(x.type==='short'){ shN++; lbl='Corto '+shN; cls='short'; }
+        else { loN++; lbl='Largo '+loN; cls='long'; }
+        if(x.req) lbl+='<span class="sstreq" title="Cierre de box: el turno final debe durar al menos esto">&ge; '+mmss(x.req)+'</span>';
+        h+=stRow(cls,sN,lbl,x.dur,x.type==='balance'?'sstBal':null);
+      });
+      col.innerHTML=h||'<div class="muted" style="font-size:11px;padding:4px 0">Sin turnos aún.</div>';
+      col.scrollTop=keep;
+    }
+    const cur=document.getElementById('sstCur'); if(cur&&!inPit)cur.textContent=mmss(Math.max(0,now-you.stintStart));
+    const cp=document.getElementById('sstCurPit'); if(cp&&inPit)cp.textContent=pitClock(you);
+    const bal=document.getElementById('sstBal'); if(bal&&P.balance!=null)bal.textContent=mmss(Math.max(0,P.balance));
+  }
   function planner(){const you=teams.find(t=>t.you); if(!you)return;
     const h=+document.getElementById('cf_h').value||10,Nstops=Math.max(1,+document.getElementById('cf_stops').value||17),
       maxs=(+document.getElementById('cf_max').value||60)*60,mins=(+document.getElementById('cf_min').value||5)*60,
       pitT=Math.max(0,MIN_PIT||0),boxClose=Math.max(0,(+document.getElementById('cf_boxclose').value||0)*60),
       race=h*3600;
-    const remStops=Math.max(0,Nstops-(you?you.stops:0)),R=Math.max(0,race-now);
-    const _curSeg=you.inPit?0:Math.max(0,now-you.stintStart), _reserveCur=Math.max(0,mins-_curSeg);   // el turno actual se asume que dura al menos el turno mínimo
-    const planStints=remStops;                                                                          // se reparte SOLO entre los turnos futuros; el actual va aparte (desde cero)
-    const budget=Math.max(0,R-_reserveCur-remStops*pitT);
+    // --- motor de plan (mismo criterio que el gestor de boxes) ---
+    const _doneSec=(you.history||[]).reduce((a,h)=>a+(h.dur||0),0);
+    const _curSeg=(you&&!you.inPit)?Math.max(0,now-you.stintStart):0;
+    const _used=Math.min(race,_doneSec+_curSeg);                       // usado = registrado + segmento en curso
+    const remStops=Math.max(0,Nstops-(you?you.stops:0)),R=Math.max(0,race-_used);
+    const planStints=remStops;                                          // el plan reparte entre los turnos FUTUROS; el actual va aparte (desde cero, en vivo)
+    const budget=Math.max(0,R-remStops*pitT);
     const effMin=mins+60,effMax=Math.max(effMin,maxs-120);
-    let dump=clamp(Math.floor((planStints*effMax-budget)/Math.max(1,effMax-effMin)),0,planStints),longN=planStints-dump;
-    const lastShort=Math.max(effMin,boxClose);
-    let shortTotal=dump>0?(dump-1)*effMin+lastShort:0;
-    let longBudget=Math.max(0,budget-shortTotal);
-    let balance=longN>0?clamp(longBudget-(longN-1)*effMax,0,effMax):0;
+    const closeMin=boxClose>0?boxClose:0;
+    const finalForced=closeMin>effMax && planStints>=1;
+    const finalDur=finalForced?closeMin:effMax;                         // duracion del ultimo turno (cierre de box)
+    const budgetR=Math.max(0,budget-(finalForced?(closeMin-effMax):0));
+    const step=Math.max(1,effMax-effMin);
+    let dump=clamp(Math.floor((planStints*effMax-budgetR)/step),0,planStints),longN=planStints-dump;
+    let balance=longN>0?Math.max(effMin,Math.min(effMax,budgetR-dump*effMin-(longN-1)*effMax)):0;   // DESEMPATE: turno flexible acotado
+    const longsReal=Math.max(0,longN-1);
+    const longsSum=longsReal>0?((longsReal-1)*effMax+finalDur):0;
+    const planSum=dump*effMin+(longN>0?balance:0)+longsSum;
     document.getElementById('kpi_total').textContent=planStints;document.getElementById('kpi_dump').textContent=dump;
-    let durs=[];
-    for(let i=0;i<longN;i++)durs.push(i===longN-1?balance:effMax);
-    for(let i=0;i<dump;i++)durs.push(i===dump-1?lastShort:effMin);
-    if(boxClose>0&&durs.length){const li=durs.length-1;if(durs[li]<boxClose){const need=boxClose-durs[li];durs[li]=boxClose;if(longN>0)durs[longN-1]=Math.max(0,durs[longN-1]-need);}}
-    window.__mrpPlanF={durs:durs.slice(),remStops,pitT,longN,dump};
+    // orden cronologico del plan: CORTOS -> DESEMPATE -> LARGOS (el ultimo es el turno final)
+    const future=[];
+    for(let i=0;i<dump;i++)future.push({type:'short',dur:effMin});
+    if(longN>0)future.push({type:'balance',dur:balance});
+    for(let i=0;i<longsReal;i++)future.push({type:'long',dur:(i===longsReal-1)?finalDur:effMax});
+    if(future.length&&closeMin>0)future[future.length-1].req=closeMin;
+    const durs=future.map(x=>x.dur);
+    window.__mrpPlanF={future:future.slice(),durs:durs.slice(),remStops,pitT,longN,dump,effMin,effMax,balance,planSum,used:_used,race,curSeg:_curSeg,inPit:!!you.inPit};
     const dmin=Math.min(...durs,effMax),dmax=Math.max(...durs,effMin),rng=Math.max(1,dmax-dmin);
-    let sh=durs.map((d,i)=>{const f=(d-dmin)/rng,col=`hsl(${(120*f).toFixed(0)},66%,52%)`,bal=(i===longN-1&&longN>0&&dump<remStints);return `<div class="stint ${bal?'balance':''}" style="border-color:${col};color:${col}" title="${bal?'Turno balance (se ajusta con el tiempo)':''}">${mmss(Math.max(0,d))}</div>`;}).join('');
+    let sh=durs.map((d,i)=>{const f=(d-dmin)/rng,col=`hsl(${(120*f).toFixed(0)},66%,52%)`,bal=(future[i]&&future[i].type==='balance');return `<div class="stint ${bal?'balance':''}" style="border-color:${col};color:${col}" title="${bal?'Turno balance (se ajusta con el tiempo)':''}">${mmss(Math.max(0,d))}</div>`;}).join('');
     const shHtml=sh||'<span class="hhint">Carrera completada.</span>',stEl=document.getElementById('stints');if(stEl._sig!==shHtml){stEl._sig=shHtml;stEl.innerHTML=shHtml;}
-    const _Rf=Math.max(0,R-_reserveCur);const sumT=durs.reduce((a,b)=>a+b,0)+remStops*pitT,fits=Math.abs(sumT-_Rf)<2;
-    const rbHtml=`Suma turnos + ${remStops} paradas (${mmss(pitT)}) = <b style="color:${fits?'#37d67a':'#ff5d5d'}">${mmss(durs.reduce((a,b)=>a+b,0))} + ${mmss(remStops*pitT)} = ${mmss(sumT)}</b> · restan ${mmss(_Rf)}${boxClose>0?`<br><span style="color:var(--dim)">Box cierra los últimos ${mmss(boxClose)}: el último turno nunca baja de ahí.</span>`:''}<br>Pérdida neta por parada — <b>Seco ${DRY}s</b> · <b style="color:var(--cyan)">Lluvia ${WET}s</b>`;
+    const sumX=_used+planSum+remStops*pitT, _gap=race-sumX, fits=Math.abs(_gap)<3; const sumT=planSum+remStops*pitT;
+    const rbHtml=`Suma turnos + ${remStops} paradas (${mmss(pitT)}) = <b style="color:${fits?'#37d67a':'#ff5d5d'}">${mmss(durs.reduce((a,b)=>a+b,0))} + ${mmss(remStops*pitT)} = ${mmss(sumT)}</b> · ${fits?'encaja ✓':(_gap>0?'faltan '+mmss(_gap)+' (alarga el turno actual)':'sobran '+mmss(-_gap))}${boxClose>0?`<br><span style="color:var(--dim)">Box cierra los últimos ${mmss(boxClose)}: el último turno nunca baja de ahí.</span>`:''}<br>${(function(){const c=(apexMode?pitCost():null);if(!c)return 'Pérdida neta por parada — <span style="color:var(--dim)">midiendo… (hacen falta paradas de equipos fiables)</span>';return 'Pérdida por parada — <b style="color:var(--cyan)">'+c.laps.toFixed(2)+' vueltas</b> ('+mmss(Math.max(0,c.secs))+')'+'<span style="color:var(--dim)"> · entrada '+c.tin.toFixed(1)+'s + box '+c.box+'s + salida '+c.tout.toFixed(1)+'s · Apex cuenta '+c.modo+' vueltas'+(c.est?' · <span style="color:var(--amber)">estimado para mojado</span>':'')+'</span>';})()}`;
     const rbEl=document.getElementById('rainbox');if(rbEl._sig!==rbHtml){rbEl._sig=rbHtml;rbEl.innerHTML=rbHtml;}}
   ['cf_h','cf_stops','cf_max','cf_min','cf_pitmin','cf_drvmin','cf_boxclose'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{syncConfig();planner();}));
   { const _sem=document.getElementById('sem'); if(_sem) _sem.addEventListener('click',function(e){
@@ -1656,6 +2125,7 @@
   segWire('set_clock',b=>clockMode=b.dataset.c);
   segWire('set_orient',b=>orient=b.dataset.o);
   segWire('set_dir',b=>kartDir=b.dataset.d);
+  {const _bs=document.getElementById('boxside');if(_bs)_bs.addEventListener('click',()=>{boxSame=!boxSame;try{window.storage.set('box_same',boxSame?'1':'0',false);}catch(_){}render();});}
   document.getElementById('boxrot').addEventListener('click',()=>{boxRot=!boxRot;kartDir=boxRot?'rev':'norm';const seg=document.getElementById('set_dir');if(seg)[...seg.children].forEach(b=>b.classList.toggle('on',b.dataset.d===kartDir));render();});
   {const _su=document.getElementById('szundo');if(_su)_su.addEventListener('click',szDoUndo);const _sr=document.getElementById('szredo');if(_sr)_sr.addEventListener('click',szDoRedo);szBtns();}
   segWire('trkdir',b=>{trackDir=+b.dataset.d;});
@@ -1689,7 +2159,30 @@
   function applyRows(){const n=clamp(+document.getElementById('cf_rows').value||3,1,6),per=clamp(+document.getElementById('cf_per').value||3,1,6);buildRows(n,per);render();}
   document.getElementById('cf_rows').addEventListener('change',applyRows);
   document.getElementById('cf_per').addEventListener('change',applyRows);
+  { const _hb=document.getElementById('btnhelp'), _hw=document.getElementById('helpwrap'), _hc=document.getElementById('helpclose');
+    if(_hb&&_hw){ _hb.addEventListener('click',()=>_hw.classList.add('open'));
+      if(_hc)_hc.addEventListener('click',()=>_hw.classList.remove('open'));
+      _hw.addEventListener('click',e=>{ if(e.target===_hw)_hw.classList.remove('open'); });
+      document.addEventListener('keydown',e=>{ if(e.key==='Escape')_hw.classList.remove('open'); }); } }
+  { const _ts=document.getElementById('trackstate');
+    if(_ts) _ts.addEventListener('click',()=>{ _trackMode=(_trackMode==='auto'?'dry':(_trackMode==='dry'?'wet':'auto')); try{render();}catch(_){} }); }
   const gear=document.getElementById('gear'),menu=document.getElementById('menu');
+  // Cuadro de opciones arrastrable (recuerda dónde lo dejas)
+  { const mh=document.getElementById('menudrag');
+    if(mh&&menu){
+      const applyPos=v=>{ try{ const p=JSON.parse(v); if(p&&isFinite(p.l)&&isFinite(p.t)){ menu.style.left=p.l+'px'; menu.style.top=p.t+'px'; menu.style.right='auto'; } }catch(_){} };
+      try{ const sv=window.__mrpMem&&window.__mrpMem['menupos']; if(sv)applyPos(sv); }catch(_){}
+      mh.addEventListener('pointerdown',e=>{
+        if(e.button&&e.button!==0)return; e.preventDefault();
+        const r=menu.getBoundingClientRect(), ox=e.clientX-r.left, oy=e.clientY-r.top;
+        menu.style.right='auto'; menu.style.left=r.left+'px'; menu.style.top=r.top+'px';
+        try{mh.setPointerCapture(e.pointerId);}catch(_){}
+        const mv=ev=>{ const l=Math.max(4,Math.min(window.innerWidth-60,ev.clientX-ox)), t=Math.max(4,Math.min(window.innerHeight-40,ev.clientY-oy)); menu.style.left=l+'px'; menu.style.top=t+'px'; };
+        const up=()=>{ document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up);
+          try{ window.storage.set('menupos',JSON.stringify({l:parseInt(menu.style.left)||0,t:parseInt(menu.style.top)||0}),false); }catch(_){} };
+        document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up);
+      });
+    } }
   gear.addEventListener('click',e=>{e.stopPropagation();menu.classList.toggle('open');});
   document.addEventListener('click',e=>{if(!menu.contains(e.target)&&e.target!==gear)menu.classList.remove('open');});
   tbody.addEventListener('pointerdown',e=>{const rt=e.target.closest('[data-reltick]');if(rt){e.stopPropagation();const dd=+rt.dataset.reltick;if(reliableSet.has(dd))reliableSet.delete(dd);else reliableSet.add(dd);saveReliable();render();return;}const ki=e.target.closest('[data-kartinfo]');if(ki){e.stopPropagation();openKartInfo(+ki.dataset.kartinfo);return;}const s=e.target.closest('[data-team]');if(s)openModal(+s.dataset.team);});
@@ -1883,7 +2376,7 @@
   chartRef=me;buildTeamPick();buildRefSelect();
   renderHead();
   planner();render();
-  function applySortHeights(){ try{ const bw=document.querySelector('.boxwrap'); if(!bw)return; ['top','bot'].forEach(w=>{ const v=window.__mrpMem&&window.__mrpMem['sort_'+w+'_h']; if(v)bw.style.setProperty('--'+w+'-h',v); }); const _mv=window.__mrpMem&&window.__mrpMem['sort_min_h']; if(_mv){ bw.style.setProperty('--sort-min-h',_mv); const _sm=document.getElementById('sortmargin'); if(_sm)_sm.value=parseInt(_mv)||0; } }catch(_){} }
+  function applySortHeights(){ try{ const bw=document.querySelector('.boxwrap'); if(!bw)return; ['top','bot'].forEach(w=>{ const v=window.__mrpMem&&window.__mrpMem['sort_'+w+'_h']; if(v)bw.style.setProperty('--'+w+'-h',v); }); const _mv=window.__mrpMem&&window.__mrpMem['sort_min_h']; if(_mv){ bw.style.setProperty('--sort-min-h',_mv); const _sm=document.getElementById('sortmargin'); if(_sm)_sm.value=parseInt(_mv)||0; } try{const _bs=window.__mrpMem&&window.__mrpMem['box_same']; if(_bs!=null)boxSame=(_bs==='1');}catch(_){} }catch(_){} }
   document.addEventListener('dragstart',e=>{ if(e.target&&e.target.closest&&e.target.closest('.sortrsz'))e.preventDefault(); });
   document.addEventListener('pointerdown',e=>{ const rz=e.target.closest('.sortrsz'); if(!rz)return; if(!editMode)return; e.preventDefault(); const which=rz.dataset.rsz, vn='--'+which+'-h', bw=document.querySelector('.boxwrap'); if(!bw)return; _resizing=true;_dragBusyT=Date.now(); try{bw.setPointerCapture(e.pointerId);}catch(_){} const sy=e.clientY; let cur=parseInt(bw.style.getPropertyValue(vn))||parseInt(getComputedStyle(bw).getPropertyValue(vn))||290; const mv=ev=>{ _dragBusyT=Date.now(); const h=Math.max(80,Math.min(800,cur+(ev.clientY-sy))); bw.style.setProperty(vn,h+'px'); }; const up=()=>{ _resizing=false; document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); try{ window.storage.set('sort_'+which+'_h', bw.style.getPropertyValue(vn), false); }catch(_){} render(); }; document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up); });
   applySortHeights();
@@ -1940,7 +2433,7 @@
       _applyingRemote=true;
       try{
         window.__mrpMem=Object.assign({},kv);
-        try{ const _pfx=window.__mrpLSPfx||'mrp:'; Object.keys(kv).forEach(k=>{ try{ localStorage.setItem(_pfx+k,kv[k]); }catch(_){} }); }catch(_){}
+        try{ const _kp=window.__mrpKeyPfx||function(k){return (window.__mrpLSPfx||'mrp:');}; Object.keys(kv).forEach(k=>{ try{ localStorage.setItem(_kp(k)+k,kv[k]); }catch(_){} }); }catch(_){}
         try{ Object.keys(fields).forEach(fid=>{ const el=document.getElementById(fid); if(el&&document.activeElement!==el) el.value=fields[fid]; }); }catch(_){}
         try{ if(meVal!==undefined&&meVal!==null){ me=+meVal; teams.forEach(t=>t.you=(t.dorsal===me)); } }catch(_){}
         try{ if(rich&&st.so) applySorteo(st.so); }catch(_){}
@@ -2021,7 +2514,7 @@
     setTimeout(()=>{ const mm=document.getElementById('modemenu'); const mr=document.getElementById('modeReal'); if(mm&&mr&&getComputedStyle(mm).display!=='none') mr.click(); }, 250);
     /* auto-conexion DESACTIVADA: se entra en Modo Real y se muestra el cuadro de la URL, pero el usuario pega el enlace y pulsa Conectar manualmente (como una carrera real) */
   }
-  loadCircuits().then(loadLayout).then(loadDriverDB).then(loadAlgo).catch(()=>{}).then(()=>{try{setSectorCols(nSectors);recompute();renderHome();}catch(_){}$('modeReal').click();});
+  loadCircuits().then(loadLayout).then(loadDriverDB).then(loadAlgo).catch(()=>{}).then(()=>{try{setSectorCols(nSectors);recompute();renderHome();}catch(_){}try{fillTrackSel();}catch(_){}$('modeReal').click();});
 
   let pt=performance.now(),lastR=0;
   // ====================== ORIGEN DE DATOS: APEX TIMING (alimenta el MISMO gestor) ======================
@@ -2091,7 +2584,43 @@
     const numBest={};list.forEach(r=>{const id=r.no?+r.no:null;if(!id)return;const v=r.laps.filter(x=>x>0);if(!v.length)return;const med=[...v].sort((a,b)=>a-b)[Math.floor(v.length/2)];const cl=v.filter(x=>x<=med*1.25);const best=Math.min(...(cl.length?cl:v));if(numBest[id]==null||best<numBest[id])numBest[id]=best;});
     const bv=Object.values(numBest),nMin=bv.length?Math.min(...bv):0,nMax=bv.length?Math.max(...bv):1;
     // Bloque H: intervalo al de delante = gap al líder[i] − gap al líder[i-1] (por posición), para feeds sin columna de intervalo
-    {const _byPos=list.slice().sort((a,b)=>(a.pos||9999)-(b.pos||9999));let _pg=0;_byPos.forEach((r,i)=>{if(i===0){r._intAhead=null;_pg=0;return;}const g=apexToSec((r.cells[bt['gap']]||{}).v||'');r._intAhead=(g!=null)?Math.max(0,g-_pg):null;if(g!=null)_pg=g;});_byPos.forEach((r,i)=>{r._intBehind=(i<_byPos.length-1)?_byPos[i+1]._intAhead:null;});}
+    {
+      // ---- CERCANIA POR PASOS POR META (no por clasificacion) ----
+      // 1) cadena: sumamos el Intervalo bajando la clasificacion -> segundos que cada kart cruzo meta
+      //    despues del lider. La cadena NO se rompe con los doblados (Apex da el intervalo en segundos igual).
+      const _byPos=list.slice().sort((a,b)=>(a.pos||9999)-(b.pos||9999));
+      let _acc=0,_chainOK=true;
+      _byPos.forEach((r,i)=>{
+        if(i===0){ r._chain=0; return; }
+        let iv=bt['int']!=null?apexToSec(((r.cells[bt['int']]||{}).v||'').replace(/^\+/,'')):null;
+        if(iv==null){ const g=apexToSec((r.cells[bt['gap']]||{}).v||''), gp=apexToSec((_byPos[i-1].cells[bt['gap']]||{}).v||''); iv=(g!=null&&gp!=null)?Math.max(0,g-gp):null; }
+        if(iv==null){ _chainOK=false; r._chain=null; return; }
+        _acc+=iv; r._chain=_acc;
+      });
+      // 2) vuelta de referencia (mediana de las ultimas vueltas) para plegar la cadena
+      const _lt=list.map(r=>apexToSec(r.lastTxt||'')).filter(v=>v!=null&&v>5).sort((a,b)=>a-b);
+      const _lap=_lt.length?_lt[_lt.length>>1]:null;
+      let _done=false;
+      if(_chainOK&&_lap){
+        // 3) fase = momento del paso por meta dentro de la vuelta; asi un doblado pegado SI cuenta
+        const ph=_byPos.filter(r=>r._chain!=null).map(r=>({r,p:((r._chain%_lap)+_lap)%_lap}));
+        if(ph.length>1){
+          ph.sort((a,b)=>a.p-b.p);
+          ph.forEach((o,i)=>{
+            const prev=ph[(i-1+ph.length)%ph.length], next=ph[(i+1)%ph.length];
+            let dA=o.p-prev.p; if(dA<0)dA+=_lap;                 // cuanto antes cruzo el de delante
+            let dB=next.p-o.p; if(dB<0)dB+=_lap;                 // cuanto despues cruzo el de detras
+            o.r._intAhead=dA; o.r._intBehind=dB;
+          });
+          _done=true;
+        }
+      }
+      if(!_done){                                                 // respaldo: metodo antiguo por clasificacion
+        let _pg=0;
+        _byPos.forEach((r,i)=>{ if(i===0){r._intAhead=null;_pg=0;return;} const g=apexToSec((r.cells[bt['gap']]||{}).v||''); r._intAhead=(g!=null)?Math.max(0,g-_pg):null; if(g!=null)_pg=g; });
+        _byPos.forEach((r,i)=>{ r._intBehind=(i<_byPos.length-1)?_byPos[i+1]._intAhead:null; });
+      }
+    }
     // Verde de cruce (solo carrera): referencia = mejor clasificado que NO esté en boxes; su paso por meta resetea los nombres verdes
     let _refDorsal=null; { let _bp=Infinity; list.forEach(r=>{ const tt=apex.map[r.id]; const dor=r.no?+r.no:r.pos; const pos=(r.pos!=null?r.pos:9999); if(tt&&tt.inPit)return; if(pos<_bp){_bp=pos;_refDorsal=dor;} }); if(_refDorsal==null){ let _bp2=Infinity; list.forEach(r=>{ const dor=r.no?+r.no:r.pos; const pos=(r.pos!=null?r.pos:9999); if(pos<_bp2){_bp2=pos;_refDorsal=dor;} }); } }
     let _leaderAbs=null; if(bt['tlp']==null){ list.forEach(r=>{ const _g=(((r.cells[bt['gap']]||{}).v)||'').trim(); const m=_g.match(/^lap\s+(\d+)/i); if(m)_leaderAbs=+m[1]; }); }
@@ -2112,17 +2641,17 @@
       const otrAvail=!!(bt['otr']&&r.otrCls);
       const staAvail=!!(bt['sta']&&r.staCls);
       if(!isNaN(pit)){ if(t._lastStops==null){t._lastStops=pit;}
-        else if(pit>t._lastStops){ if(t.you)say('Parada en boxes registrada'); if(!staAvail&&!otrAvail){ apexTurnClose(t); const _estp=Math.max(0,(t.last||0)-(recentPace(t)||t.last||0)); apexPitClose(t,_estp); t.pitStart=now; t._pitStartLap=t.laps; t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; apexPitIn(t); } }
+        else if(pit>t._lastStops){ if(t.you)say('Parada en boxes registrada'); if(!staAvail&&!otrAvail){ apexTurnClose(t); const _estp=Math.max(0,(t.last||0)-(recentPace(t)||t.last||0)); apexPitClose(t,_estp); t.pitStart=now; t._pitStartLap=t.laps; } t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; apexPitIn(t); }
         t._lastStops=pit; t.stops=pit; }
       if(staAvail){                                                  // BOXES por columna de ESTADO: 'si' = en boxes (parada real), 'so'/otro = fuera
         const nowIn=(r.staCls==='si') && !(t._pitInLaps!=null && t.laps>t._pitInLaps+1);
-        if(nowIn && !t.inPit){ recordTurn(t); apexTurnClose(t); t.pitStart=now; apexPitIn(t); }       // entra a boxes: cierra el turno y arranca cronómetro de parada
-        else if(!nowIn && t.inPit){ apexPitClose(t); if(t.waitKart)t.exitUnassigned=true; t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; t._pitHeld=false; }   // sale de boxes: cierra la parada (tiempo real pit-in→pit-out)
+        if(nowIn && !t.inPit){ if(t._lastCross!=null)pitSample('in',t,now-t._lastCross); t._lapsPitIn=(t._lastCrossLaps!=null?t._lastCrossLaps:t.laps); recordTurn(t); apexTurnClose(t); t.pitStart=now; apexPitIn(t); }
+        else if(!nowIn && t.inPit){ t._pitOutAt=now; apexPitClose(t); if(t.waitKart)t.exitUnassigned=true; t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; t._pitHeld=false; }   // sale: cierra la parada (tiempo real pit-in->pit-out)   // sale de boxes -> nuevo turno
         t.inPit=nowIn;
       } else if(otrAvail && r._wasTo){                               // fallback: columna 'In pista' (feeds sin estado si/so)
         const nowIn=(r.otrCls==='in' && /^\d+:\d\d/.test((r.otrVal||'').trim())) && !(t._pitInLaps!=null && t.laps>t._pitInLaps+1);
-        if(nowIn && !t.inPit){ recordTurn(t); apexTurnClose(t); t.pitStart=now; apexPitIn(t); }
-        else if(!nowIn && t.inPit){ apexPitClose(t); if(t.waitKart)t.exitUnassigned=true; t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; t._pitHeld=false; }
+        if(nowIn && !t.inPit){ if(t._lastCross!=null)pitSample('in',t,now-t._lastCross); t._lapsPitIn=(t._lastCrossLaps!=null?t._lastCrossLaps:t.laps); recordTurn(t); apexTurnClose(t); t.pitStart=now; apexPitIn(t); }
+        else if(!nowIn && t.inPit){ t._pitOutAt=now; apexPitClose(t); if(t.waitKart)t.exitUnassigned=true; t.stintStart=now; t.alarmed=false; t.stintLaps=[]; t.stintRaw=[]; t.minDone=false; t._pitHeld=false; }
         t.inPit=nowIn;
       } else if(otrAvail){
         t.inPit=false;
@@ -2134,7 +2663,7 @@
       // cruce de meta detectado por el contador de vueltas (fiable): aparece en óvalo y suma vuelta
       if(r.lapTotal!=null){
         if(t._lastLapTotal==null&&r.lapTotal>1){t._lastLapTotal=r.lapTotal;t._lapWall=performance.now();}
-        else if(r.lapTotal>(t._lastLapTotal||0)){const _prev=t._lastLapTotal||0;const _gap=r.lapTotal-_prev;t._lastLapTotal=r.lapTotal;t._seen=true;if(sessionKind()==='carrera'){if(t.dorsal===_refDorsal){for(let _ci=0;_ci<teams.length;_ci++)teams[_ci]._nameGreen=false;}t._nameGreen=true;}t._lapWall=performance.now();if(!t.inPit){t._flashAt=performance.now();t._pulse=true;}if(!apex._live){apex._live=true;}const lt=t.last||vRef;if(_gap>1&&_prev>0){const _est=(t.lapCnt>0?t.lapSum/t.lapCnt:lt);for(let _g=1;_g<_gap;_g++){t.lapSum+=_est;t.lapCnt++;t.lapLog.push({lap:_prev+_g,t:_est,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name,est:true});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(_est);if(t.stintLaps.length>200)t.stintLaps.shift();}apex._gaps=(apex._gaps||0)+(_gap-1);}t.lapSum+=lt;t.lapCnt++;t.lapLog.push({lap:r.lapTotal,t:lt,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(lt);if(t.stintLaps.length>200)t.stintLaps.shift();if(lt>0){r.laps.push(lt);if(r.laps.length>500)r.laps.shift();} {const _kid=t.kart; if(_kid){ const _K=karts[_kid-1]||(karts[_kid-1]={id:_kid,samples:[],pct:null,prov:true,stints:[],rawLaps:[]}); (_K.rawLaps||(_K.rawLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind}); if(_K.rawLaps.length>400)_K.rawLaps.shift(); (t.stintRaw||(t.stintRaw=[])).push({t:lt,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind}); if(t.stintRaw.length>60)t.stintRaw.shift(); } else if(t.exitUnassigned){ (t._orphanLaps||(t._orphanLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind}); if(t._orphanLaps.length>400)t._orphanLaps.shift(); }}}
+        else if(r.lapTotal>(t._lastLapTotal||0)){const _prev=t._lastLapTotal||0;const _gap=r.lapTotal-_prev;t._lastLapTotal=r.lapTotal;t._seen=true;if(t._pitOutAt!=null){ pitSample('out',t,now-t._pitOutAt); t._pitOutAt=null; if(t._lapsPitIn!=null){ pitLapDelta(t.laps-t._lapsPitIn); t._lapsPitIn=null; } }t._lastCross=now;t._lastCrossLaps=t.laps;if(sessionKind()==='carrera'){if(t.dorsal===_refDorsal){const _nw=performance.now();for(let _ci=0;_ci<teams.length;_ci++){const _x=teams[_ci];if(_x!==t&&!(_x._lapWall&&(_nw-_x._lapWall)<2500))_x._nameGreen=false;}}t._nameGreen=true;}t._lapWall=performance.now();if(!t.inPit){t._flashAt=performance.now();t._pulse=true;}if(!apex._live){apex._live=true;}const lt=t.last||vRef;if(_gap>1&&_prev>0){const _est=(t.lapCnt>0?t.lapSum/t.lapCnt:lt);for(let _g=1;_g<_gap;_g++){t.lapSum+=_est;t.lapCnt++;t.lapLog.push({lap:_prev+_g,t:_est,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name,est:true});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(_est);if(t.stintLaps.length>200)t.stintLaps.shift();}apex._gaps=(apex._gaps||0)+(_gap-1);}t.lapSum+=lt;t.lapCnt++;t.lapLog.push({lap:r.lapTotal,t:lt,at:Date.now(),kart:t.kart,driver:(t.drivers[0]||{}).name});if(t.lapLog.length>5000)t.lapLog.shift();t.stintLaps.push(lt);if(t.stintLaps.length>200)t.stintLaps.shift();if(lt>0){r.laps.push(lt);if(r.laps.length>500)r.laps.shift();} {const _kid=t.kart; if(_kid){ const _K=karts[_kid-1]||(karts[_kid-1]={id:_kid,samples:[],pct:null,prov:true,stints:[],rawLaps:[]}); (_K.rawLaps||(_K.rawLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind,gap0:t._lineGap,gapB0:t._lineGapB,st:(t.stops||0),kart:id,ln:(t._stintLapN=(t._stintLapN||0)+1),pace:racePace()}); t._lastLapRef=_K.rawLaps[_K.rawLaps.length-1]; if(_K.rawLaps.length>400)_K.rawLaps.shift(); t._lineGap=(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead); t._lineGapB=r._intBehind; /* hueco en meta = apertura de la vuelta siguiente */ (t.stintRaw||(t.stintRaw=[])).push({t:lt,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind,gap0:t._lineGap,gapB0:t._lineGapB}); if(t.stintRaw.length>60)t.stintRaw.shift(); } else if(t.exitUnassigned){ (t._orphanLaps||(t._orphanLaps=[])).push({t:lt,drv:(t.drivers[0]||{}).name||'',team:t.dorsal,gap:(bt['int']?apexToSec((r.cells[bt['int']]||{}).v||''):r._intAhead),gapB:r._intBehind,gap0:t._lineGap,gapB0:t._lineGapB}); if(t._orphanLaps.length>400)t._orphanLaps.shift(); }}}
       }
       // duración de vuelta para el óvalo: media de vueltas LIMPIAS (ignora vueltas de boxes/anómalas)
       {const cl=r.laps.filter(x=>x>0);let dur=0;if(cl.length){const so=[...cl].sort((a,b)=>a-b),med=so[so.length>>1],good=cl.filter(x=>x<=med*1.3);dur=good.reduce((a,b)=>a+b,0)/good.length;}t.target=dur||(t.best<Infinity?t.best:0)||vRef;}
@@ -2145,6 +2674,8 @@
       t._behind=r.pos||999;t._apexPos=r.pos;
       let gtxt=((r.cells[bt['gap']]||{}).v||'').trim();if(LAPWORDS.test(gtxt)&&/^\D/.test(gtxt))gtxt='';t._gapTxt=gtxt;
       t._intTxt=bt['int']?((r.cells[bt['int']]||{}).v||'').trim():(r._intAhead!=null?('+'+r._intAhead.toFixed(3)):'');
+      t._pos=(r.pos!=null?r.pos:null);
+      { const _iv=bt['int']?apexToSec(((r.cells[bt['int']]||{}).v||'').replace(/^\+/,'')):null; t._gapAhead=(_iv!=null?_iv:(r._intAhead!=null?r._intAhead:null)); }   // hueco real al de delante (s)
       t._stintTxt=r.stint||'';
       const pena=apex.penaCol?(((r.cells[apex.penaCol]||{}).v||'').trim()):'';t.penalties=pena?[{id:1,text:'Sanción activa: '+pena,served:false,t:now}]:[];
       const id=t.kart;if(id){if(!karts[id-1])karts[id-1]={id,samples:[],pct:null,prov:true,stints:[],rawLaps:[]};const nb=numBest[id];karts[id-1].pct=(nb!=null&&nMax>nMin)?Math.round(100*(1-(nb-nMin)/(nMax-nMin))):null;karts[id-1].prov=(r.laps.length<3);}
@@ -2202,4 +2733,88 @@
     requestAnimationFrame(loop);}
   requestAnimationFrame(loop);
 })();
-</script>
+</script><div class="helpwrap" id="helpwrap"><div class="helpbox"><div class="helphead"><b>Cómo funciona el algoritmo</b><button class="pclose" id="helpclose">✕</button></div><div class="helpbody">
+
+<p class="par">Todo lo que calcula el gestor sale de las vueltas que manda Apex. Aquí está, paso a paso, qué hace con ellas. Los nombres en <b>negrita</b> son los mismos que verás en los ajustes.</p>
+
+<h3>1 · Qué se guarda de cada vuelta</h3>
+<p>Cada vez que un kart cruza meta y completa una vuelta se guarda: el <b>tiempo</b>, <b>qué kart</b> la hizo, <b>qué equipo</b> lo conducía, <b>en qué turno</b> (equipo + kart + nº de paradas), <b>qué número de vuelta</b> es dentro de ese turno, el <b>ritmo de carrera</b> que había en ese momento, y los <b>huecos por delante y por detrás en los dos pasos por meta</b>: el que abrió la vuelta y el que la cerró.</p>
+
+<h4>Vueltas que NUNCA cuentan</h4>
+<ul><li>La <b>vuelta de entrada a boxes</b>.</li><li>Las <b>dos primeras vueltas de cada turno</b> (salida de boxes, kart frío y tráfico).</li></ul>
+
+<h3>2 · Limpia o sucia</h3>
+<p>La cercanía <u>no</u> se mide por el gap de clasificación, sino por los <b>instantes de paso por meta</b>. Así, un doblado pegado a ti cuenta, aunque en la tabla esté muy lejos.</p>
+<p>Un paso por meta está despejado si nadie cruzó dentro de <b>Hueco mín. por delante</b> antes, ni dentro de <b>Hueco mín. por detrás</b> después.</p>
+<div class="warn">La vuelta es <b>LIMPIA solo si los DOS pasos por meta estaban despejados</b>: el que la abre y el que la cierra. Si falla cualquiera de los dos, es <b>SUCIA</b>.</div>
+
+<h3>3 · Los dos filtros de calidad</h3>
+<p>Se aplican <b>dentro de cada turno</b>, con su propia referencia. Así un turno rápido no contamina a uno lento, ni al revés.</p>
+<h4>Filtro A — fuera las sucias que no fueron rebufo</h4>
+<p>Si el turno tiene alguna limpia, se descartan las sucias <b>más lentas que la mejor limpia de ese turno</b>. Ahí se perdió tiempo (un doblado que se cierra, tráfico), no se ganó rebufo. En mojado esto descarta las sucias solo, porque ir detrás estorba.</p>
+<h4>Filtro B — fuera las limpias malas</h4>
+<p>Se descartan las limpias más de <b>Descartar limpias lentas</b> peores que la mejor sucia superviviente del turno. Se aplica siempre, aunque deje el turno sin ninguna limpia.</p>
+<p class="par">El orden importa: primero A, luego B. Al revés, una sucia mala subiría el listón y colaría limpias malas.</p>
+
+<h3>4 · Nota del kart</h3>
+<p>Se calcula <b>bloque a bloque, en orden</b>. Un bloque nuevo empieza al cambiar de equipo, de turno <u>o de condición de pista</u>.</p>
+<p>Dentro del bloque: se descarta lo que pase del 130 % de la mediana, se pasa el anti-fallos de cronometraje, y se hace la <b>media de las mejores</b> (<b>Vueltas para la media</b>). Con <b>Modo de la nota</b> desactivado entran limpias y sucias juntas, sumando el <b>Rebufo</b> de la barra a las sucias.</p>
+<h4>Quién sobrescribe la nota anterior</h4>
+<ul>
+<li>Bloque de equipo <b>FIABLE</b> → <b>sobrescribe siempre</b>, aunque sea más lento. Así la nota refleja cómo está el kart <u>ahora</u>.</li>
+<li>Bloque de equipo <b>NO fiable</b> → solo sobrescribe <b>si mejora</b>.</li>
+<li>Si <b>cambia la condición</b> de pista → sobrescribe cualquiera y desde la primera vuelta, porque la nota anterior es de otras condiciones.</li>
+</ul>
+<h4>El asterisco (*)</h4>
+<p>Significa que esa nota <b>nunca la ha puesto un equipo fiable</b>. En cuanto un fiable rueda con ese kart, desaparece — y no vuelve aunque después la mejore un no fiable.</p>
+<h4>Colores</h4>
+<p>Nota de <b>seco</b>: verde (mejor) → amarillo → rojo. Nota de <b>mojado</b>: rosa (mejor) → azul oscuro. Las columnas <b>Última</b> y <b>Media turno</b> usan el color según cómo esté la pista <u>ahora</u>.</p>
+
+<h3>5 · Rebufo recomendado</h3>
+<p>Es el número <code>rec</code> que sale junto al campo <b>Rebufo</b>. Responde a: <i>¿cuántos segundos regala ir a rueda en este circuito?</i></p>
+<ul>
+<li>Solo <b>equipos fiables</b>. Si no marcas ninguno, no hay recomendación.</li>
+<li>Se agrupa <b>por turno</b>. De cada uno hacen falta al menos una limpia y una sucia.</li>
+<li>Se comparan tantas de cada como el menor de: limpias válidas, sucias válidas y <b>Vueltas para el rebufo recomendado</b>.</li>
+<li><b>Diferencia del turno</b> = media de las mejores limpias − media de las mejores sucias. Se descarta si sale de 3 s o más.</li>
+<li>Luego <b>media por equipo</b>, y después <b>media entre equipos</b>: cada equipo pesa igual, tenga muchas vueltas o pocas.</li>
+<li>No se resetea nunca: cada turno nuevo se suma al acumulado.</li>
+</ul>
+<div class="warn">Un turno sin ninguna limpia válida <b>no aporta al rebufo recomendado</b> (no hay resta posible), pero <b>sus vueltas sí cuentan para la nota del kart</b>.</div>
+
+<h3>6 · Pista lenta (lluvia, coche de seguridad)</h3>
+<p>Se compara el ritmo de carrera actual con el <b>mejor ritmo de toda la carrera</b>. Si empeora más de <b>Pista lenta: entrar</b>, se activa; se apaga al bajar de <b>Pista lenta: salir</b> (dos umbrales para que no parpadee).</p>
+<p>La condición de cada vuelta se decide <b>al calcular</b>, no en el momento. Por eso, si la carrera <b>empieza mojada y luego seca</b>, las vueltas de lluvia quedan marcadas correctamente <u>hacia atrás</u>.</p>
+<h4>Qué pasa al activarse</h4>
+<ul>
+<li>La <b>barra superior se pone azul</b> con el aviso 🌧️.</li>
+<li>El campo <b>Rebufo se pone a 0 y se bloquea</b>; al salir recupera tu valor. En mojado no hay rebufo: ir detrás estorba más que ayuda.</li>
+<li>El <b>rebufo recomendado</b> muestra 0 y esas vueltas <b>no cuentan</b> para calcularlo.</li>
+<li>Las <b>notas</b> se recalculan aparte, con su gradiente de mojado.</li>
+</ul>
+<p class="par">El botón ☔ cambia entre automático → forzar seco → forzar lluvia. Si la carrera es mojada de principio a fin, el gestor no tiene con qué comparar y no lo detecta solo: ahí conviene forzarlo.</p>
+
+<h3>7 · Coste de una parada</h3>
+<p>El gestor <b>mide por su cuenta</b> la vuelta de entrada (meta → pit-in) y la de salida (pit-out → meta). Nunca usa el valor de Apex, porque puede llevar el tiempo de box dentro y dispararse.</p>
+<ul>
+<li>Solo muestras de <b>equipos fiables</b>, guardadas por separado para seco y para mojado.</li>
+<li>Se usan las <b>mejores</b> de cada tipo (<b>Vueltas de boxes a promediar</b>).</li>
+<li><code>coste en vueltas = (entrada + box + salida) / ritmo − vueltas que cuenta Apex</code>, donde box = parada mínima + 1 s.</li>
+<li>Las <b>vueltas que cuenta Apex</b> durante la parada (2 o 3, según el circuito) se detectan solas.</li>
+<li>Con lluvia, hasta tener <b>2 paradas reales en mojado</b> se estima escalando las de seco según lo que ha empeorado el ritmo.</li>
+</ul>
+<p class="par">Esto necesita pit-in y pit-out en el feed. Si el circuito no los manda, verás «midiendo…».</p>
+
+<h3>8 · Posición virtual</h3>
+<p>Responde a: <i>si ahora mismo todos hicieran las paradas que les faltan, ¿quién iría dónde?</i></p>
+<p><code>virtual = vueltas completadas − (paradas pendientes × coste de parada en vueltas)</code>, ordenando de mayor a menor.</p>
+<div class="warn">Va en <b>vueltas, no en tiempo</b>, y es la clave. En tiempo, una parada cuesta casi lo mismo llueva o no. En vueltas no: con ritmo de 40 s una parada de 180 s cuesta 4,5 vueltas; con ritmo de 60 s cuesta 3,0. Por eso <b>parar en mojado sale más barato</b>, y esa ventaja aparece sola.</div>
+
+<h3>9 · Ritmo de carrera</h3>
+<p>Es la media de las <b>5 mejores «Última vuelta»</b> de los equipos que están en pista en ese momento (solo fiables, si hay marcados), quitando las anómalas. Se recalcula cada vuelta y alimenta el coste de parada, la posición virtual y la detección de pista lenta.</p>
+
+<h3>10 · Equipos fiables</h3>
+<p>El tick de fiable marca los equipos cuyos datos te fías. Es la pieza más importante de todo lo anterior: <b>el rebufo recomendado y el coste de parada usan SOLO equipos fiables</b>, y en las notas un fiable siempre manda mientras que un no fiable solo puede mejorar. Si no marcas ninguno, varios cálculos se quedan sin datos.</p>
+
+</div></div></div>
+
